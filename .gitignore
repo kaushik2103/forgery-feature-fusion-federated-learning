@@ -210,3 +210,7 @@ __marimo__/
 # Dataset
 datasets
 prepared_data
+balanced_data
+
+# results
+federated_results
