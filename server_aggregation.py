@@ -1,9 +1,16 @@
+# ============================================================
+# Server Aggregation Script
+# MODEL FUSION (Not FedAvg)
+# ============================================================
+
 import os
 import json
 import torch
 import argparse
 import numpy as np
+import pandas as pd
 from tqdm import tqdm
+import matplotlib.pyplot as plt
 
 from sklearn.metrics import (
     accuracy_score,
@@ -12,143 +19,252 @@ from sklearn.metrics import (
     f1_score,
     confusion_matrix,
     classification_report,
-    roc_auc_score
+    roc_auc_score,
+    roc_curve
 )
 
 from datasets_loader import get_dataloader
 from models.hybrid_model import build_model
 
 
+# ============================================================
+# Argument Parser
+# ============================================================
 
 def parse_args():
+
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("--client_dirs", nargs="+", required=True,
-                        help="Paths to client output folders")
-    parser.add_argument("--client_weights", nargs="+", type=float,
-                        help="Client importance weights (same order)")
-    parser.add_argument("--global_test_path", type=str,
-                        default="prepared_data/global_test")
-    parser.add_argument("--save_dir", type=str,
-                        default="server_outputs")
-    parser.add_argument("--resnet_type", type=str,
-                        default="resnet50")
+    parser.add_argument("--client_dirs", nargs="+", required=True)
+
+    parser.add_argument(
+        "--global_test_path",
+        type=str,
+        required=True
+    )
+
+    parser.add_argument(
+        "--save_dir",
+        type=str,
+        default="server_outputs"
+    )
+
+    parser.add_argument(
+        "--resnet_type",
+        type=str,
+        default="resnet50"
+    )
 
     return parser.parse_args()
 
 
+# ============================================================
+# Load Client Models
+# ============================================================
 
 def load_client_models(client_dirs, device, resnet_type):
 
-    models_list = []
+    models = []
+
+    print("\nLoading client models...")
 
     for path in client_dirs:
 
         model = build_model(resnet_type)
+
         weight_path = os.path.join(path, "best_model.pth")
 
-        model.load_state_dict(torch.load(weight_path, map_location=device))
+        if not os.path.exists(weight_path):
+            raise FileNotFoundError(weight_path)
+
+        model.load_state_dict(
+            torch.load(weight_path, map_location=device)
+        )
+
         model.to(device)
         model.eval()
 
-        models_list.append(model)
+        models.append(model)
 
-    return models_list
+    return models
 
 
+# ============================================================
+# MODEL FUSION
+# ============================================================
 
-def fusion_aggregation(models_list, weights):
+def fuse_models(models_list, resnet_type):
 
-    global_model = build_model()
+    print("\nPerforming MODEL FUSION")
+
+    global_model = build_model(resnet_type)
+
     global_dict = global_model.state_dict()
 
     client_dicts = [m.state_dict() for m in models_list]
 
-    total_weight = sum(weights)
-    weights = [w/total_weight for w in weights]
+    n = len(models_list)
 
-    for key in global_dict.keys():
+    # default equal weights
+    weights = [1 / n] * n
 
+    for key in tqdm(global_dict.keys(), desc="Fusing Layers"):
 
-        if "resnet" in key or "xception" in key:
+        try:
 
-            global_dict[key] = sum(
-                weights[i] * client_dicts[i][key]
-                for i in range(len(models_list))
-            )
+            # ---------------------------------------
+            # Backbone Fusion (ResNet + Xception)
+            # ---------------------------------------
 
+            if "resnet" in key or "xception" in key:
 
-        elif "fusion" in key:
+                global_dict[key] = sum(
+                    weights[i] * client_dicts[i][key]
+                    for i in range(n)
+                )
 
-            global_dict[key] = sum(
-                weights[i] * client_dicts[i][key]
-                for i in range(len(models_list))
-            )
+            # ---------------------------------------
+            # Feature Fusion Layer
+            # ---------------------------------------
 
+            elif "fusion" in key:
 
-        elif "classifier" in key:
+                fusion_weights = [0.6, 0.4] if n == 2 else weights
 
-            # Give slightly higher importance to last client (deepfake)
-            deepfake_boost = 1.2
+                global_dict[key] = sum(
+                    fusion_weights[i] * client_dicts[i][key]
+                    for i in range(n)
+                )
 
-            adjusted_weights = weights.copy()
-            adjusted_weights[-1] *= deepfake_boost
+            # ---------------------------------------
+            # Classifier Layer
+            # ---------------------------------------
 
-            norm = sum(adjusted_weights)
-            adjusted_weights = [w/norm for w in adjusted_weights]
+            elif "classifier" in key:
 
-            global_dict[key] = sum(
-                adjusted_weights[i] * client_dicts[i][key]
-                for i in range(len(models_list))
-            )
+                classifier_weights = [0.5, 0.5] if n == 2 else weights
 
-        else:
-            global_dict[key] = sum(
-                weights[i] * client_dicts[i][key]
-                for i in range(len(models_list))
-            )
+                global_dict[key] = sum(
+                    classifier_weights[i] * client_dicts[i][key]
+                    for i in range(n)
+                )
+
+            # ---------------------------------------
+            # Other layers
+            # ---------------------------------------
+
+            else:
+
+                global_dict[key] = sum(
+                    weights[i] * client_dicts[i][key]
+                    for i in range(n)
+                )
+
+        except:
+            # handle mismatched tensors
+            global_dict[key] = client_dicts[0][key]
 
     global_model.load_state_dict(global_dict)
 
     return global_model
 
 
+# ============================================================
+# Evaluation
+# ============================================================
+
 def evaluate(model, loader, device):
 
     model.eval()
 
-    all_preds = []
-    all_labels = []
-    all_probs = []
+    preds = []
+    labels = []
+    probs = []
 
     with torch.no_grad():
-        for images, labels in tqdm(loader, desc="Global Evaluation"):
+
+        for images, y in tqdm(loader, desc="Global Evaluation"):
 
             images = images.to(device)
+
             outputs = model(images)
 
-            probs = torch.softmax(outputs, dim=1)
-            preds = torch.argmax(probs, dim=1)
+            prob = torch.softmax(outputs, dim=1)
 
-            all_preds.extend(preds.cpu().numpy())
-            all_labels.extend(labels.numpy())
-            all_probs.extend(probs[:,1].cpu().numpy())
+            pred = torch.argmax(prob, dim=1)
 
-    return np.array(all_labels), np.array(all_preds), np.array(all_probs)
+            preds.extend(pred.cpu().numpy())
+            labels.extend(y.numpy())
+            probs.extend(prob[:,1].cpu().numpy())
+
+    return np.array(labels), np.array(preds), np.array(probs)
 
 
-def save_results(labels, preds, probs, save_path):
+# ============================================================
+# Plot Confusion Matrix
+# ============================================================
+
+def plot_confusion_matrix(cm, save_dir):
+
+    plt.figure(figsize=(5,5))
+
+    plt.imshow(cm, cmap="Blues")
+
+    plt.title("Confusion Matrix")
+
+    plt.colorbar()
+
+    for i in range(cm.shape[0]):
+        for j in range(cm.shape[1]):
+            plt.text(j,i,cm[i,j],ha="center",va="center")
+
+    plt.xlabel("Predicted")
+    plt.ylabel("True")
+
+    plt.tight_layout()
+
+    plt.savefig(os.path.join(save_dir,"confusion_matrix.png"))
+
+    plt.close()
+
+
+# ============================================================
+# Plot ROC Curve
+# ============================================================
+
+def plot_roc(labels, probs, save_dir):
+
+    fpr, tpr, _ = roc_curve(labels, probs)
+
+    plt.figure()
+
+    plt.plot(fpr, tpr)
+
+    plt.xlabel("False Positive Rate")
+    plt.ylabel("True Positive Rate")
+
+    plt.title("ROC Curve")
+
+    plt.savefig(os.path.join(save_dir,"roc_curve.png"))
+
+    plt.close()
+
+
+# ============================================================
+# Save Results
+# ============================================================
+
+def save_results(labels, preds, probs, cm, save_dir):
 
     acc = accuracy_score(labels, preds)
-    precision = precision_score(labels, preds)
-    recall = recall_score(labels, preds)
-    f1 = f1_score(labels, preds)
-    cm = confusion_matrix(labels, preds).tolist()
 
-    try:
-        auc = roc_auc_score(labels, probs)
-    except:
-        auc = 0.0
+    precision = precision_score(labels, preds, zero_division=0)
+
+    recall = recall_score(labels, preds, zero_division=0)
+
+    f1 = f1_score(labels, preds, zero_division=0)
+
+    auc = roc_auc_score(labels, probs)
 
     report = classification_report(labels, preds)
 
@@ -157,20 +273,48 @@ def save_results(labels, preds, probs, save_path):
         "precision": precision,
         "recall": recall,
         "f1_score": f1,
-        "roc_auc": auc,
-        "confusion_matrix": cm
+        "roc_auc": auc
     }
 
-    with open(os.path.join(save_path, "global_metrics.json"), "w") as f:
-        json.dump(metrics, f, indent=4)
+    # save metrics
+    with open(os.path.join(save_dir,"global_metrics.json"),"w") as f:
+        json.dump(metrics,f,indent=4)
 
-    with open(os.path.join(save_path, "global_classification_report.txt"), "w") as f:
+    pd.DataFrame([metrics]).to_csv(
+        os.path.join(save_dir,"evaluation_metrics.csv"),
+        index=False
+    )
+
+    # classification report
+    with open(os.path.join(save_dir,"classification_report.txt"),"w") as f:
         f.write(report)
 
-    print("\n===== GLOBAL EVALUATION =====")
-    print(json.dumps(metrics, indent=4))
-    print("\nClassification Report:\n", report)
+    # confusion matrix
+    np.save(os.path.join(save_dir,"confusion_matrix.npy"),cm)
 
+    plot_confusion_matrix(cm,save_dir)
+
+    # ROC
+    plot_roc(labels,probs,save_dir)
+
+    # predictions
+    pd.DataFrame({
+        "label":labels,
+        "prediction":preds,
+        "probability":probs
+    }).to_csv(
+        os.path.join(save_dir,"predictions.csv"),
+        index=False
+    )
+
+    print("\nGLOBAL METRICS")
+
+    print(json.dumps(metrics,indent=4))
+
+
+# ============================================================
+# Main
+# ============================================================
 
 def main():
 
@@ -180,25 +324,25 @@ def main():
 
     os.makedirs(args.save_dir, exist_ok=True)
 
-    # Default equal weights if not provided
-    if args.client_weights is None:
-        weights = [1.0] * len(args.client_dirs)
-    else:
-        weights = args.client_weights
-
     models_list = load_client_models(
         args.client_dirs,
         device,
         args.resnet_type
     )
 
-    global_model = fusion_aggregation(models_list, weights)
+    global_model = fuse_models(
+        models_list,
+        args.resnet_type
+    )
+
     global_model.to(device)
 
-    # Save global model
-    torch.save(global_model.state_dict(),
-               os.path.join(args.save_dir, "global_model.pth"))
+    torch.save(
+        global_model.state_dict(),
+        os.path.join(args.save_dir,"global_model.pth")
+    )
 
+    # global test loader
     global_loader = get_dataloader(
         args.global_test_path,
         split="test",
@@ -207,10 +351,20 @@ def main():
 
     labels, preds, probs = evaluate(global_model, global_loader, device)
 
-    save_results(labels, preds, probs, args.save_dir)
+    cm = confusion_matrix(labels, preds)
 
-    print("\nServer Aggregation Completed")
+    save_results(
+        labels,
+        preds,
+        probs,
+        cm,
+        args.save_dir
+    )
 
+    print("\nServer Fusion Completed")
+
+
+# ============================================================
 
 if __name__ == "__main__":
     main()

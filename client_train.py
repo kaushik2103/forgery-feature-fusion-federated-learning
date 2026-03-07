@@ -1,8 +1,14 @@
+# ============================================================
+# Client Training Script (Model Fusion Compatible)
+# ============================================================
+
 import os
 import json
 import argparse
 import numpy as np
 from tqdm import tqdm
+import pandas as pd
+import matplotlib.pyplot as plt
 
 import torch
 import torch.nn as nn
@@ -15,42 +21,62 @@ from sklearn.metrics import (
     f1_score,
     confusion_matrix,
     classification_report,
-    roc_auc_score
+    roc_auc_score,
+    roc_curve
 )
 
 from datasets_loader import get_dataloader
 from models.hybrid_model import build_model
 
 
+# ============================================================
+# Argument Parser
+# ============================================================
+
 def parse_args():
+
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("--client_path", type=str, required=True,
-                        help="Path to prepared client dataset")
+    parser.add_argument("--client_path", type=str, required=True)
     parser.add_argument("--client_name", type=str, required=True)
+
     parser.add_argument("--epochs", type=int, default=10)
-    parser.add_argument("--batch_size", type=int, default=16)
-    parser.add_argument("--lr", type=float, default=1e-3)
+    parser.add_argument("--batch_size", type=int, default=12)
+
+    parser.add_argument("--lr", type=float, default=3e-4)
+
     parser.add_argument("--resnet_type", type=str, default="resnet50")
+
+    parser.add_argument("--global_model", type=str, default=None)
+
     parser.add_argument("--save_dir", type=str, default="client_outputs")
 
     return parser.parse_args()
 
 
+# ============================================================
+# Training
+# ============================================================
 
 def train_one_epoch(model, loader, criterion, optimizer, device):
 
     model.train()
+
     running_loss = 0
 
     for images, labels in tqdm(loader, desc="Training", leave=False):
-        images, labels = images.to(device), labels.to(device)
+
+        images = images.to(device)
+        labels = labels.to(device)
 
         optimizer.zero_grad()
+
         outputs = model(images)
+
         loss = criterion(outputs, labels)
 
         loss.backward()
+
         optimizer.step()
 
         running_loss += loss.item()
@@ -58,6 +84,9 @@ def train_one_epoch(model, loader, criterion, optimizer, device):
     return running_loss / len(loader)
 
 
+# ============================================================
+# Evaluation
+# ============================================================
 
 def evaluate(model, loader, device):
 
@@ -68,10 +97,13 @@ def evaluate(model, loader, device):
     all_probs = []
 
     with torch.no_grad():
-        for images, labels in tqdm(loader, desc="Evaluating", leave=False):
+
+        for images, labels in tqdm(loader, desc="Testing", leave=False):
+
             images = images.to(device)
 
             outputs = model(images)
+
             probs = torch.softmax(outputs, dim=1)
 
             preds = torch.argmax(probs, dim=1)
@@ -83,43 +115,133 @@ def evaluate(model, loader, device):
     return np.array(all_labels), np.array(all_preds), np.array(all_probs)
 
 
+# ============================================================
+# Metrics
+# ============================================================
 
-def save_metrics(labels, preds, probs, save_path):
+def compute_metrics(labels, preds, probs):
 
     acc = accuracy_score(labels, preds)
-    precision = precision_score(labels, preds)
-    recall = recall_score(labels, preds)
-    f1 = f1_score(labels, preds)
-    cm = confusion_matrix(labels, preds).tolist()
 
-    try:
-        auc = roc_auc_score(labels, probs)
-    except:
-        auc = 0.0
+    precision = precision_score(labels, preds, zero_division=0)
 
-    report = classification_report(labels, preds)
+    recall = recall_score(labels, preds, zero_division=0)
 
-    metrics = {
+    f1 = f1_score(labels, preds, zero_division=0)
+
+    auc = roc_auc_score(labels, probs)
+
+    cm = confusion_matrix(labels, preds)
+
+    return {
         "accuracy": acc,
         "precision": precision,
         "recall": recall,
         "f1_score": f1,
-        "roc_auc": auc,
-        "confusion_matrix": cm
-    }
+        "roc_auc": auc
+    }, cm
 
-    # Save JSON
-    with open(os.path.join(save_path, "metrics.json"), "w") as f:
-        json.dump(metrics, f, indent=4)
 
-    # Save Classification Report
-    with open(os.path.join(save_path, "classification_report.txt"), "w") as f:
+# ============================================================
+# Plot Functions
+# ============================================================
+
+def plot_training_curve(history, save_path):
+
+    df = pd.DataFrame(history)
+
+    plt.figure(figsize=(8,5))
+
+    plt.plot(df["epoch"], df["accuracy"], label="Accuracy")
+    plt.plot(df["epoch"], df["train_loss"], label="Loss")
+
+    plt.xlabel("Epoch")
+    plt.ylabel("Value")
+
+    plt.legend()
+
+    plt.title("Training Curve")
+
+    plt.savefig(os.path.join(save_path,"training_curve.png"))
+
+    plt.close()
+
+
+def plot_confusion_matrix(cm, save_path):
+
+    plt.figure(figsize=(5,5))
+
+    plt.imshow(cm, cmap="Blues")
+
+    for i in range(cm.shape[0]):
+        for j in range(cm.shape[1]):
+            plt.text(j,i,cm[i,j],ha="center",va="center")
+
+    plt.title("Confusion Matrix")
+
+    plt.xlabel("Predicted")
+    plt.ylabel("True")
+
+    plt.savefig(os.path.join(save_path,"confusion_matrix.png"))
+
+    plt.close()
+
+
+def plot_roc(labels, probs, save_path):
+
+    fpr, tpr, _ = roc_curve(labels, probs)
+
+    plt.figure()
+
+    plt.plot(fpr,tpr)
+
+    plt.xlabel("FPR")
+    plt.ylabel("TPR")
+
+    plt.title("ROC Curve")
+
+    plt.savefig(os.path.join(save_path,"roc_curve.png"))
+
+    plt.close()
+
+
+# ============================================================
+# Save Results
+# ============================================================
+
+def save_results(metrics, cm, labels, preds, probs, save_path):
+
+    report = classification_report(labels, preds)
+
+    with open(os.path.join(save_path,"metrics.json"),"w") as f:
+        json.dump(metrics,f,indent=4)
+
+    with open(os.path.join(save_path,"classification_report.txt"),"w") as f:
         f.write(report)
 
-    print("\n===== Evaluation Metrics =====")
-    print(json.dumps(metrics, indent=4))
-    print("\nClassification Report:\n", report)
+    np.save(os.path.join(save_path,"confusion_matrix.npy"),cm)
 
+    plot_confusion_matrix(cm,save_path)
+
+    plot_roc(labels,probs,save_path)
+
+    pd.DataFrame({
+        "label":labels,
+        "prediction":preds,
+        "probability":probs
+    }).to_csv(
+        os.path.join(save_path,"predictions.csv"),
+        index=False
+    )
+
+    print("\nFinal Metrics")
+
+    print(json.dumps(metrics,indent=4))
+
+
+# ============================================================
+# Main
+# ============================================================
 
 def main():
 
@@ -127,9 +249,11 @@ def main():
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
-    save_path = os.path.join(args.save_dir, args.client_name)
-    os.makedirs(save_path, exist_ok=True)
+    save_path = os.path.join(args.save_dir,args.client_name)
 
+    os.makedirs(save_path,exist_ok=True)
+
+    print("\nDevice:",device)
 
     train_loader = get_dataloader(
         args.client_path,
@@ -143,42 +267,125 @@ def main():
         batch_size=args.batch_size
     )
 
+    # ========================================================
+    # Model
+    # ========================================================
 
     model = build_model(args.resnet_type).to(device)
 
-    criterion = nn.CrossEntropyLoss()
-    optimizer = optim.Adam(model.parameters(), lr=args.lr)
+    if args.global_model and os.path.exists(args.global_model):
+
+        print("\nLoading Fused Global Model")
+
+        model.load_state_dict(
+            torch.load(args.global_model,map_location=device)
+        )
+
+    # ========================================================
+    # Training Setup
+    # ========================================================
+
+    class_weights = torch.tensor([1.0,1.5]).to(device)
+
+    criterion = nn.CrossEntropyLoss(weight=class_weights)
+
+    optimizer = optim.Adam(
+        model.parameters(),
+        lr=args.lr
+    )
+
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(
+        optimizer,
+        patience=2,
+        factor=0.5
+    )
 
     best_acc = 0
 
+    history = []
 
-    for epoch in range(args.epochs):
+    patience = 3
 
-        print(f"\nEpoch [{epoch+1}/{args.epochs}]")
+    early_stop_counter = 0
+
+    # ========================================================
+    # Training Loop
+    # ========================================================
+
+    for epoch in range(1,args.epochs+1):
 
         train_loss = train_one_epoch(
-            model, train_loader, criterion, optimizer, device
+            model,
+            train_loader,
+            criterion,
+            optimizer,
+            device
         )
 
-        labels, preds, probs = evaluate(model, test_loader, device)
+        labels,preds,probs = evaluate(model,test_loader,device)
 
-        acc = accuracy_score(labels, preds)
+        metrics,cm = compute_metrics(labels,preds,probs)
 
-        print(f"Train Loss: {train_loss:.4f}")
-        print(f"Validation Accuracy: {acc:.4f}")
+        scheduler.step(metrics["accuracy"])
 
-        # Save best model
-        if acc > best_acc:
-            best_acc = acc
-            torch.save(model.state_dict(),
-                       os.path.join(save_path, "best_model.pth"))
+        metrics["epoch"] = epoch
+        metrics["train_loss"] = train_loss
 
+        history.append(metrics)
 
-    labels, preds, probs = evaluate(model, test_loader, device)
+        print("Epoch",epoch,"Accuracy",metrics["accuracy"])
 
-    save_metrics(labels, preds, probs, save_path)
+        if metrics["accuracy"] > best_acc:
 
-    print("\nTraining Completed for", args.client_name)
+            best_acc = metrics["accuracy"]
+
+            torch.save(
+                model.state_dict(),
+                os.path.join(save_path,"best_model.pth")
+            )
+
+            early_stop_counter = 0
+
+        else:
+
+            early_stop_counter += 1
+
+            if early_stop_counter >= patience:
+
+                print("Early stopping")
+
+                break
+
+    torch.save(
+        model.state_dict(),
+        os.path.join(save_path,"last_model.pth")
+    )
+
+    # ========================================================
+    # Save Training History
+    # ========================================================
+
+    with open(os.path.join(save_path,"training_history.json"),"w") as f:
+        json.dump(history,f,indent=4)
+
+    pd.DataFrame(history).to_csv(
+        os.path.join(save_path,"epoch_metrics.csv"),
+        index=False
+    )
+
+    plot_training_curve(history,save_path)
+
+    # ========================================================
+    # Final Evaluation
+    # ========================================================
+
+    labels,preds,probs = evaluate(model,test_loader,device)
+
+    final_metrics,cm = compute_metrics(labels,preds,probs)
+
+    save_results(final_metrics,cm,labels,preds,probs,save_path)
+
+    print("\nClient Training Completed")
 
 
 if __name__ == "__main__":

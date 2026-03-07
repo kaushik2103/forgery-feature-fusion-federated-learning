@@ -1,95 +1,156 @@
+# ============================================================
+# Dataset Loader for Federated Deepfake Detection
+# ============================================================
+
 import os
+import random
 from PIL import Image
-from torch.utils.data import Dataset, DataLoader
 import torch
+from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms
 
-LABEL_MAP = {
-    "real": 0,
-    "fake": 1
-}
+# ============================================================
+# Valid Image Extensions
+# ============================================================
+
+VALID_EXTENSIONS = (".jpg", ".jpeg", ".png", ".bmp", ".webp")
+
+
+# ============================================================
+# Image Transforms
+# ============================================================
 
 def get_transforms(img_size=224, train=True):
+    """
+    224 works best for hybrid ResNet + Xception fusion
+    Faster training and stable accuracy
+    """
 
     if train:
+
         return transforms.Compose([
+
             transforms.Resize((img_size, img_size)),
+
             transforms.RandomHorizontalFlip(),
-            transforms.RandomRotation(10),
-            transforms.ColorJitter(brightness=0.2, contrast=0.2),
+
             transforms.ToTensor(),
-            transforms.Normalize([0.5,0.5,0.5],[0.5,0.5,0.5])
+
+            transforms.Normalize(
+                [0.485, 0.456, 0.406],
+                [0.229, 0.224, 0.225]
+            )
         ])
 
     else:
+
         return transforms.Compose([
+
             transforms.Resize((img_size, img_size)),
+
             transforms.ToTensor(),
-            transforms.Normalize([0.5,0.5,0.5],[0.5,0.5,0.5])
+
+            transforms.Normalize(
+                [0.485, 0.456, 0.406],
+                [0.229, 0.224, 0.225]
+            )
         ])
 
+
+# ============================================================
+# Dataset Class
+# ============================================================
 
 class ForgeryDataset(Dataset):
 
     def __init__(self, root_dir, split="train", img_size=224):
-        """
-        root_dir:
-            prepared_data/client1_casia
-            prepared_data/client2_siw
-            prepared_data/client3_ff
-            prepared_data/global_test
-
-        split:
-            train / test (ignored for global)
-        """
 
         self.samples = []
-        self.transform = get_transforms(img_size, train=(split=="train"))
+        self.root_dir = root_dir
+        self.split = split
 
-        # Global dataset case
-        if "global_test" in root_dir:
-            self._load_global(root_dir)
+        self.transform = get_transforms(
+            img_size,
+            train=(split == "train")
+        )
 
+        # ----------------------------------------------------
+        # Detect dataset structure
+        # ----------------------------------------------------
+
+        split_path = os.path.join(root_dir, split)
+
+        if os.path.exists(split_path):
+            dataset_path = split_path
         else:
-            self._load_client(root_dir, split)
+            # global dataset case
+            dataset_path = root_dir
 
-        print(f"Loaded {len(self.samples)} images from {root_dir} ({split})")
+        self._load_dataset(dataset_path)
+
+        print(f"\nLoaded {len(self.samples)} samples from {dataset_path}")
 
 
-    def _load_client(self, root_dir, split):
+    # ========================================================
+    # Load Dataset
+    # ========================================================
 
-        for label_name in ["real", "fake"]:
+    def _load_dataset(self, dataset_path):
 
-            folder = os.path.join(root_dir, split, label_name)
+        real_count = 0
+        fake_count = 0
 
-            if not os.path.exists(folder):
+        for class_name in os.listdir(dataset_path):
+
+            folder = os.path.join(dataset_path, class_name)
+
+            if not os.path.isdir(folder):
                 continue
 
-            label = LABEL_MAP[label_name]
+            # ---------------------------
+            # Label Assignment
+            # ---------------------------
+
+            if class_name.lower() == "real":
+                label = 0
+            else:
+                label = 1
 
             for img in os.listdir(folder):
-                path = os.path.join(folder, img)
-                self.samples.append((path, label))
+
+                if not img.lower().endswith(VALID_EXTENSIONS):
+                    continue
+
+                img_path = os.path.join(folder, img)
+
+                self.samples.append((img_path, label))
+
+                if label == 0:
+                    real_count += 1
+                else:
+                    fake_count += 1
+
+        # Shuffle samples
+        random.shuffle(self.samples)
+
+        print("\nDataset Statistics")
+        print("------------------")
+        print("Real :", real_count)
+        print("Fake :", fake_count)
+        print("Total:", real_count + fake_count)
 
 
-    def _load_global(self, root_dir):
-
-        for label_name in ["real", "fake"]:
-
-            folder = os.path.join(root_dir, label_name)
-
-            if not os.path.exists(folder):
-                continue
-
-            label = LABEL_MAP[label_name]
-
-            for img in os.listdir(folder):
-                path = os.path.join(folder, img)
-                self.samples.append((path, label))
-
+    # ========================================================
+    # Dataset Length
+    # ========================================================
 
     def __len__(self):
         return len(self.samples)
+
+
+    # ========================================================
+    # Get Item
+    # ========================================================
 
     def __getitem__(self, idx):
 
@@ -97,25 +158,49 @@ class ForgeryDataset(Dataset):
 
         try:
             image = Image.open(img_path).convert("RGB")
+
         except:
-            # corrupted image safety
-            return self.__getitem__((idx+1) % len(self.samples))
+            # Handle corrupted images
+            new_idx = random.randint(0, len(self.samples) - 1)
+            return self.__getitem__(new_idx)
 
         image = self.transform(image)
 
         return image, torch.tensor(label, dtype=torch.long)
 
 
-def get_dataloader(root_dir, split="train", batch_size=32, img_size=224, num_workers=2):
+# ============================================================
+# DataLoader
+# ============================================================
 
-    dataset = ForgeryDataset(root_dir, split, img_size)
+def get_dataloader(
+        root_dir,
+        split="train",
+        batch_size=32,
+        img_size=224,
+        num_workers=2
+):
+
+    dataset = ForgeryDataset(
+        root_dir=root_dir,
+        split=split,
+        img_size=img_size
+    )
 
     loader = DataLoader(
+
         dataset,
+
         batch_size=batch_size,
-        shuffle=(split=="train"),
+
+        shuffle=(split == "train"),
+
         num_workers=num_workers,
-        pin_memory=True
+
+        pin_memory=True,
+
+        drop_last=(split == "train")
+
     )
 
     return loader

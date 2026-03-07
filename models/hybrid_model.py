@@ -1,17 +1,21 @@
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 from torchvision import models
 import timm
+
 
 class HybridResNetXception(nn.Module):
     """
     Hybrid Model for Unified Forgery Detection
 
-    Branch 1: ResNet (low-level texture learning)
-    Branch 2: Xception (deepfake semantic learning)
-    Fusion: Feature Concatenation + FC
-    Output: 2 classes (Real=0, Fake=1)
+    Branch 1 : ResNet  (texture / spoof artifacts)
+    Branch 2 : Xception (deepfake semantic artifacts)
+
+    Fusion : Feature Concatenation + Fully Connected
+
+    Output :
+        0 → Real
+        1 → Fake
     """
 
     def __init__(
@@ -19,55 +23,76 @@ class HybridResNetXception(nn.Module):
         resnet_type="resnet50",
         pretrained=True,
         fusion_dim=512,
-        dropout=0.5,
+        dropout=0.2,
         num_classes=2
     ):
         super(HybridResNetXception, self).__init__()
 
+        # --------------------------------------------------
+        # ResNet Backbone
+        # --------------------------------------------------
         if resnet_type == "resnet18":
             backbone = models.resnet18(pretrained=pretrained)
             resnet_out = 512
+
         elif resnet_type == "resnet34":
             backbone = models.resnet34(pretrained=pretrained)
             resnet_out = 512
+
         elif resnet_type == "resnet50":
             backbone = models.resnet50(pretrained=pretrained)
             resnet_out = 2048
+
         else:
             raise ValueError("Unsupported ResNet type")
 
-        # Remove FC layer
+        # Remove classification layer
         self.resnet = nn.Sequential(*list(backbone.children())[:-1])
-        self.resnet_out = resnet_out
+        self.resnet_out = int(resnet_out)
 
+        # --------------------------------------------------
+        # Xception Backbone (from timm)
+        # --------------------------------------------------
         self.xception = timm.create_model(
             "xception",
             pretrained=pretrained,
-            num_classes=0,     # removes classifier
-            global_pool="avg"  # ensures feature output
+            num_classes=0,        # remove classifier
+            global_pool="avg"
         )
 
-        self.xception_out = self.xception.num_features
+        # Ensure integer type
+        self.xception_out = int(self.xception.num_features)
+
+        # --------------------------------------------------
+        # Feature Fusion Layer
+        # --------------------------------------------------
+        fusion_input = self.resnet_out + self.xception_out
 
         self.fusion = nn.Sequential(
-            nn.Linear(self.resnet_out + self.xception_out, fusion_dim),
+            nn.Linear(fusion_input, fusion_dim),
             nn.BatchNorm1d(fusion_dim),
             nn.ReLU(inplace=True),
             nn.Dropout(dropout)
         )
 
+        # --------------------------------------------------
+        # Final Classifier
+        # --------------------------------------------------
         self.classifier = nn.Linear(fusion_dim, num_classes)
 
-
+    # ------------------------------------------------------
+    # Forward Pass
+    # ------------------------------------------------------
     def forward(self, x):
 
+        # ResNet branch
+        r_feat = self.resnet(x)            # (B, C, 1, 1)
+        r_feat = torch.flatten(r_feat, 1)  # (B, C)
 
-        r_feat = self.resnet(x)              # (B, C, 1, 1)
-        r_feat = torch.flatten(r_feat, 1)    # (B, C)
+        # Xception branch
+        x_feat = self.xception(x)          # (B, C)
 
-
-        x_feat = self.xception(x)            # (B, C)
-
+        # Feature fusion
         fused = torch.cat((r_feat, x_feat), dim=1)
 
         fused = self.fusion(fused)
@@ -76,7 +101,9 @@ class HybridResNetXception(nn.Module):
 
         return out
 
-
+    # ------------------------------------------------------
+    # Feature Extraction (used in analysis / FL similarity)
+    # ------------------------------------------------------
     def extract_features(self, x):
 
         r_feat = self.resnet(x)
@@ -85,10 +112,15 @@ class HybridResNetXception(nn.Module):
         x_feat = self.xception(x)
 
         fused = torch.cat((r_feat, x_feat), dim=1)
+
         fused = self.fusion(fused)
 
         return fused
 
+
+# ----------------------------------------------------------
+# Freeze Utilities (useful for transfer learning)
+# ----------------------------------------------------------
 
 def freeze_resnet(model):
     for param in model.resnet.parameters():
@@ -104,9 +136,23 @@ def unfreeze_all(model):
     for param in model.parameters():
         param.requires_grad = True
 
+
+# ----------------------------------------------------------
+# Build Model (used by other scripts)
+# ----------------------------------------------------------
+
 def build_model(resnet_type="resnet50"):
-    model = HybridResNetXception(resnet_type=resnet_type)
+
+    model = HybridResNetXception(
+        resnet_type=resnet_type
+    )
+
     return model
+
+
+# ----------------------------------------------------------
+# Test Model
+# ----------------------------------------------------------
 
 if __name__ == "__main__":
 
@@ -119,4 +165,4 @@ if __name__ == "__main__":
     output = model(dummy)
 
     print("Input shape :", dummy.shape)
-    print("Output shape:", output.shape)  # Expected: [4,2]
+    print("Output shape:", output.shape)  # Expected: [4, 2]
