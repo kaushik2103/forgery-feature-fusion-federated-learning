@@ -1,5 +1,5 @@
 # ============================================================
-# Client Training Script (Model Fusion Compatible)
+# Client Training Script (FedAvg Compatible)
 # ============================================================
 
 import os
@@ -76,6 +76,8 @@ def train_one_epoch(model, loader, criterion, optimizer, device):
         loss = criterion(outputs, labels)
 
         loss.backward()
+
+        torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
 
         optimizer.step()
 
@@ -255,6 +257,10 @@ def main():
 
     print("\nDevice:",device)
 
+    # ========================================================
+    # Load Data
+    # ========================================================
+
     train_loader = get_dataloader(
         args.client_path,
         split="train",
@@ -267,6 +273,10 @@ def main():
         batch_size=args.batch_size
     )
 
+    dataset_size = len(train_loader.dataset)
+
+    print("Client Dataset Size:", dataset_size)
+
     # ========================================================
     # Model
     # ========================================================
@@ -275,7 +285,7 @@ def main():
 
     if args.global_model and os.path.exists(args.global_model):
 
-        print("\nLoading Fused Global Model")
+        print("\nLoading Global Model")
 
         model.load_state_dict(
             torch.load(args.global_model,map_location=device)
@@ -360,6 +370,17 @@ def main():
         model.state_dict(),
         os.path.join(save_path,"last_model.pth")
     )
+
+    # ========================================================
+    # Save dataset size for FedAvg
+    # ========================================================
+
+    with open(os.path.join(save_path,"client_info.json"),"w") as f:
+
+        json.dump({
+            "client_name":args.client_name,
+            "dataset_size":dataset_size
+        },f,indent=4)
 
     # ========================================================
     # Save Training History

@@ -1,6 +1,6 @@
 # ============================================================
 # Server Aggregation Script
-# MODEL FUSION (Not FedAvg)
+# FEDERATED AVERAGING (FedAvg)
 # ============================================================
 
 import os
@@ -59,12 +59,13 @@ def parse_args():
 
 
 # ============================================================
-# Load Client Models
+# Load Client Models + Dataset Sizes
 # ============================================================
 
 def load_client_models(client_dirs, device, resnet_type):
 
     models = []
+    sample_counts = []
 
     print("\nLoading client models...")
 
@@ -86,16 +87,31 @@ def load_client_models(client_dirs, device, resnet_type):
 
         models.append(model)
 
-    return models
+        # load dataset size
+        info_file = os.path.join(path, "client_info.json")
+
+        if os.path.exists(info_file):
+
+            with open(info_file) as f:
+                info = json.load(f)
+
+            sample_counts.append(info["dataset_size"])
+
+        else:
+
+            print("WARNING: client_info.json missing, using equal weight")
+            sample_counts.append(1)
+
+    return models, sample_counts
 
 
 # ============================================================
-# MODEL FUSION
+# FEDAVG AGGREGATION
 # ============================================================
 
-def fuse_models(models_list, resnet_type):
+def fedavg(models_list, sample_counts, resnet_type):
 
-    print("\nPerforming MODEL FUSION")
+    print("\nPerforming FedAvg Aggregation")
 
     global_model = build_model(resnet_type)
 
@@ -103,65 +119,26 @@ def fuse_models(models_list, resnet_type):
 
     client_dicts = [m.state_dict() for m in models_list]
 
-    n = len(models_list)
+    total_samples = sum(sample_counts)
 
-    # default equal weights
-    weights = [1 / n] * n
+    # compute normalized weights
+    weights = [c / total_samples for c in sample_counts]
 
-    for key in tqdm(global_dict.keys(), desc="Fusing Layers"):
+    print("Client sample counts:", sample_counts)
+    print("Aggregation weights:", weights)
+
+    for key in tqdm(global_dict.keys(), desc="Aggregating Parameters"):
 
         try:
 
-            # ---------------------------------------
-            # Backbone Fusion (ResNet + Xception)
-            # ---------------------------------------
-
-            if "resnet" in key or "xception" in key:
-
-                global_dict[key] = sum(
-                    weights[i] * client_dicts[i][key]
-                    for i in range(n)
-                )
-
-            # ---------------------------------------
-            # Feature Fusion Layer
-            # ---------------------------------------
-
-            elif "fusion" in key:
-
-                fusion_weights = [0.6, 0.4] if n == 2 else weights
-
-                global_dict[key] = sum(
-                    fusion_weights[i] * client_dicts[i][key]
-                    for i in range(n)
-                )
-
-            # ---------------------------------------
-            # Classifier Layer
-            # ---------------------------------------
-
-            elif "classifier" in key:
-
-                classifier_weights = [0.5, 0.5] if n == 2 else weights
-
-                global_dict[key] = sum(
-                    classifier_weights[i] * client_dicts[i][key]
-                    for i in range(n)
-                )
-
-            # ---------------------------------------
-            # Other layers
-            # ---------------------------------------
-
-            else:
-
-                global_dict[key] = sum(
-                    weights[i] * client_dicts[i][key]
-                    for i in range(n)
-                )
+            global_dict[key] = sum(
+                weights[i] * client_dicts[i][key]
+                for i in range(len(models_list))
+            )
 
         except:
-            # handle mismatched tensors
+
+            # fallback safety
             global_dict[key] = client_dicts[0][key]
 
     global_model.load_state_dict(global_dict)
@@ -276,7 +253,6 @@ def save_results(labels, preds, probs, cm, save_dir):
         "roc_auc": auc
     }
 
-    # save metrics
     with open(os.path.join(save_dir,"global_metrics.json"),"w") as f:
         json.dump(metrics,f,indent=4)
 
@@ -285,19 +261,15 @@ def save_results(labels, preds, probs, cm, save_dir):
         index=False
     )
 
-    # classification report
     with open(os.path.join(save_dir,"classification_report.txt"),"w") as f:
         f.write(report)
 
-    # confusion matrix
     np.save(os.path.join(save_dir,"confusion_matrix.npy"),cm)
 
     plot_confusion_matrix(cm,save_dir)
 
-    # ROC
     plot_roc(labels,probs,save_dir)
 
-    # predictions
     pd.DataFrame({
         "label":labels,
         "prediction":preds,
@@ -324,14 +296,15 @@ def main():
 
     os.makedirs(args.save_dir, exist_ok=True)
 
-    models_list = load_client_models(
+    models_list, sample_counts = load_client_models(
         args.client_dirs,
         device,
         args.resnet_type
     )
 
-    global_model = fuse_models(
+    global_model = fedavg(
         models_list,
+        sample_counts,
         args.resnet_type
     )
 
@@ -342,7 +315,6 @@ def main():
         os.path.join(args.save_dir,"global_model.pth")
     )
 
-    # global test loader
     global_loader = get_dataloader(
         args.global_test_path,
         split="test",
@@ -361,7 +333,7 @@ def main():
         args.save_dir
     )
 
-    print("\nServer Fusion Completed")
+    print("\nFedAvg Aggregation Completed")
 
 
 # ============================================================
