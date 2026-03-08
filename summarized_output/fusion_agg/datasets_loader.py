@@ -9,7 +9,10 @@ VALID_EXTENSIONS = (".jpg", ".jpeg", ".png", ".bmp", ".webp")
 
 
 def get_transforms(img_size=224, train=True):
-
+    """
+    224 works best for hybrid ResNet + Xception fusion
+    Faster training and stable accuracy
+    """
 
     if train:
 
@@ -55,6 +58,7 @@ class ForgeryDataset(Dataset):
             train=(split == "train")
         )
 
+
         split_path = os.path.join(root_dir, split)
 
         if os.path.exists(split_path):
@@ -66,6 +70,7 @@ class ForgeryDataset(Dataset):
         self._load_dataset(dataset_path)
 
         print(f"\nLoaded {len(self.samples)} samples from {dataset_path}")
+
 
 
     def _load_dataset(self, dataset_path):
@@ -114,6 +119,7 @@ class ForgeryDataset(Dataset):
         return len(self.samples)
 
 
+
     def __getitem__(self, idx):
 
         img_path, label = self.samples[idx]
@@ -129,6 +135,7 @@ class ForgeryDataset(Dataset):
         image = self.transform(image)
 
         return image, torch.tensor(label, dtype=torch.long)
+
 
 
 def get_dataloader(

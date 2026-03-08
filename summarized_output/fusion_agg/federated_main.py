@@ -22,6 +22,7 @@ from sklearn.metrics import (
 
 from datasets_loader import get_dataloader
 from models.hybrid_model import build_model
+from server_aggregation import fuse_models
 
 
 
@@ -93,32 +94,7 @@ def local_train(model, train_loader, epochs, device, lr):
 
         scheduler.step(epoch_loss)
 
-    return model
-
-
-
-def fedavg(client_models, client_sizes):
-
-    global_model = copy.deepcopy(client_models[0])
-
-    global_dict = global_model.state_dict()
-
-    total_samples = sum(client_sizes)
-
-    weights = [size / total_samples for size in client_sizes]
-
-    client_dicts = [m.state_dict() for m in client_models]
-
-    for key in global_dict.keys():
-
-        global_dict[key] = sum(
-            weights[i] * client_dicts[i][key]
-            for i in range(len(client_models))
-        )
-
-    global_model.load_state_dict(global_dict)
-
-    return global_model
+    return model, epoch_loss
 
 
 
@@ -151,8 +127,11 @@ def evaluate(model, loader, device):
     probs = np.array(probs)
 
     acc = accuracy_score(labels, preds)
+
     precision = precision_score(labels, preds, zero_division=0)
+
     recall = recall_score(labels, preds, zero_division=0)
+
     f1 = f1_score(labels, preds, zero_division=0)
 
     try:
@@ -179,21 +158,32 @@ def plot_curves(round_metrics, save_dir):
     df = pd.DataFrame(round_metrics)
 
     plt.figure()
+
     plt.plot(df["round"], df["accuracy"])
+
     plt.xlabel("Round")
+
     plt.ylabel("Accuracy")
+
     plt.title("Global Accuracy")
+
     plt.savefig(os.path.join(save_dir,"accuracy_curve.png"))
+
     plt.close()
 
     plt.figure()
-    plt.plot(df["round"], df["f1_score"])
-    plt.xlabel("Round")
-    plt.ylabel("F1 Score")
-    plt.title("Global F1 Score")
-    plt.savefig(os.path.join(save_dir,"f1_curve.png"))
-    plt.close()
 
+    plt.plot(df["round"], df["f1_score"])
+
+    plt.xlabel("Round")
+
+    plt.ylabel("F1 Score")
+
+    plt.title("Global F1 Score")
+
+    plt.savefig(os.path.join(save_dir,"f1_curve.png"))
+
+    plt.close()
 
 
 def main():
@@ -209,6 +199,7 @@ def main():
     print("\nUsing device:", device)
 
     with open(os.path.join(args.save_dir,"federated_config.json"),"w") as f:
+
         json.dump(vars(args),f,indent=4)
 
     global_model = build_model(args.resnet_type).to(device)
@@ -224,6 +215,7 @@ def main():
         batch_size=args.batch_size
     )
 
+
     for round_num in range(args.rounds):
 
         print("\n==============================")
@@ -231,12 +223,8 @@ def main():
         print("==============================")
 
         client_models = []
-        client_sizes = []
         client_round_metrics = []
 
-        # ----------------------------------------------------
-        # Train Clients
-        # ----------------------------------------------------
 
         for client_id, client_path in enumerate(args.client_paths):
 
@@ -254,11 +242,9 @@ def main():
                 batch_size=args.batch_size
             )
 
-            dataset_size = len(train_loader.dataset)
-
             local_model = copy.deepcopy(global_model)
 
-            local_model = local_train(
+            local_model, train_loss = local_train(
                 local_model,
                 train_loader,
                 args.local_epochs,
@@ -270,7 +256,7 @@ def main():
 
             metrics["client"] = client_id+1
             metrics["round"] = round_num+1
-            metrics["dataset_size"] = dataset_size
+            metrics["train_loss"] = train_loss
 
             client_round_metrics.append(metrics)
 
@@ -278,12 +264,10 @@ def main():
 
             client_models.append(local_model)
 
-            client_sizes.append(dataset_size)
-
         client_history.extend(client_round_metrics)
 
 
-        global_model = fedavg(client_models, client_sizes)
+        global_model = fuse_models(client_models, args.resnet_type)
 
         global_model.to(device)
 
@@ -332,10 +316,13 @@ def main():
 
         torch.cuda.empty_cache()
 
+
     with open(os.path.join(args.save_dir,"round_metrics.json"),"w") as f:
+
         json.dump(round_metrics,f,indent=4)
 
     with open(os.path.join(args.save_dir,"client_metrics.json"),"w") as f:
+
         json.dump(client_history,f,indent=4)
 
     pd.DataFrame(round_metrics).to_csv(
@@ -351,6 +338,7 @@ def main():
     plot_curves(round_metrics,args.save_dir)
 
     print("\nFederated Training Completed")
+
     print("Best Global Accuracy:",best_acc)
 
 

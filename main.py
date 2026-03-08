@@ -39,9 +39,6 @@ def count_client(client_path):
     print(f"Grand Total: {total_real + total_fake}")
 
 
-# ----------------------------------------------------------
-# Main
-# ----------------------------------------------------------
 if __name__ == "__main__":
 
     clients = [

@@ -65,8 +65,6 @@ def train_one_epoch(model, loader, criterion, optimizer, device):
 
         loss.backward()
 
-        torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
-
         optimizer.step()
 
         running_loss += loss.item()
@@ -99,6 +97,7 @@ def evaluate(model, loader, device):
             all_probs.extend(probs[:,1].cpu().numpy())
 
     return np.array(all_labels), np.array(all_preds), np.array(all_probs)
+
 
 
 def compute_metrics(labels, preds, probs):
@@ -184,6 +183,7 @@ def plot_roc(labels, probs, save_path):
     plt.close()
 
 
+
 def save_results(metrics, cm, labels, preds, probs, save_path):
 
     report = classification_report(labels, preds)
@@ -227,7 +227,6 @@ def main():
 
     print("\nDevice:",device)
 
-
     train_loader = get_dataloader(
         args.client_path,
         split="train",
@@ -240,19 +239,17 @@ def main():
         batch_size=args.batch_size
     )
 
-    dataset_size = len(train_loader.dataset)
-
-    print("Client Dataset Size:", dataset_size)
 
     model = build_model(args.resnet_type).to(device)
 
     if args.global_model and os.path.exists(args.global_model):
 
-        print("\nLoading Global Model")
+        print("\nLoading Fused Global Model")
 
         model.load_state_dict(
             torch.load(args.global_model,map_location=device)
         )
+
 
     class_weights = torch.tensor([1.0,1.5]).to(device)
 
@@ -276,6 +273,7 @@ def main():
     patience = 3
 
     early_stop_counter = 0
+
 
     for epoch in range(1,args.epochs+1):
 
@@ -326,12 +324,6 @@ def main():
         os.path.join(save_path,"last_model.pth")
     )
 
-    with open(os.path.join(save_path,"client_info.json"),"w") as f:
-
-        json.dump({
-            "client_name":args.client_name,
-            "dataset_size":dataset_size
-        },f,indent=4)
 
     with open(os.path.join(save_path,"training_history.json"),"w") as f:
         json.dump(history,f,indent=4)
@@ -342,6 +334,7 @@ def main():
     )
 
     plot_training_curve(history,save_path)
+
 
     labels,preds,probs = evaluate(model,test_loader,device)
 
