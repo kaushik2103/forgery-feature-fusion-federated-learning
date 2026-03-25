@@ -1,5 +1,5 @@
 # Forgery Feature Fusion Federated Learning
-The system trains a single universal forgery detector collaboratively using 2 decentralized clients without sharing raw images. The system collaboratively learns a universal facial forgery detector by combining local hybrid feature learning with server-side fusion aggregation across heterogeneous domains.
+The system trains a single universal forgery detector collaboratively using 4 decentralized clients without sharing raw images. The system collaboratively learns a universal facial forgery detector by combining local hybrid feature learning with server-side fusion aggregation across heterogeneous domains.
 
 
 ## How to run the clients(example):
@@ -35,6 +35,10 @@ The system trains a single universal forgery detector collaboratively using 2 de
 
 `python federated_main.py --rounds 5 --local_epochs 2 --batch_size 32 --client_paths prepared_data/client1_casia prepared_data/client2_siw prepared_data/client3_ff`
 
+This command I have used for training and testing:
+`python federated_main.py --rounds 20  --local_epochs 5 --batch_size 12 --lr 0.001 --client_paths ff_clients\client1 ff_clients\client2 --global_test_path ff_clients\global_test`
+
+New command to be use: `python federated_main.py --rounds 20 --local_epochs 5 --batch_size 12 --lr 0.0003 --client_paths ff_clients/client1 ff_clients/client2 --global_test_path ff_clients/global_test`
 ## Project Overview
 
 This project implements a **Federated Learning (FL) framework for Deepfake Detection** using a **hybrid CNN–Xception architecture** trained on the **FaceForensics++ dataset**.

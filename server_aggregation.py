@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 import matplotlib.pyplot as plt
+import torch.nn.functional as F
 
 from sklearn.metrics import (
     accuracy_score,
@@ -22,30 +23,13 @@ from datasets_loader import get_dataloader
 from models.hybrid_model import build_model
 
 
-
 def parse_args():
-
     parser = argparse.ArgumentParser()
 
     parser.add_argument("--client_dirs", nargs="+", required=True)
-
-    parser.add_argument(
-        "--global_test_path",
-        type=str,
-        required=True
-    )
-
-    parser.add_argument(
-        "--save_dir",
-        type=str,
-        default="server_outputs"
-    )
-
-    parser.add_argument(
-        "--resnet_type",
-        type=str,
-        default="resnet50"
-    )
+    parser.add_argument("--global_test_path", type=str, required=True)
+    parser.add_argument("--save_dir", type=str, default="server_outputs")
+    parser.add_argument("--resnet_type", type=str, default="resnet50")
 
     return parser.parse_args()
 
@@ -53,7 +37,7 @@ def parse_args():
 def load_client_models(client_dirs, device, resnet_type):
 
     models = []
-    sample_counts = []
+    accuracies = []
 
     print("\nLoading client models...")
 
@@ -66,79 +50,164 @@ def load_client_models(client_dirs, device, resnet_type):
         if not os.path.exists(weight_path):
             raise FileNotFoundError(weight_path)
 
-        model.load_state_dict(
-            torch.load(weight_path, map_location=device)
-        )
-
+        model.load_state_dict(torch.load(weight_path, map_location=device))
         model.to(device)
         model.eval()
 
         models.append(model)
 
-        # load dataset size
-        info_file = os.path.join(path, "client_info.json")
+        metrics_path = os.path.join(path, "metrics.json")
 
-        if os.path.exists(info_file):
-
-            with open(info_file) as f:
-                info = json.load(f)
-
-            sample_counts.append(info["dataset_size"])
-
+        if os.path.exists(metrics_path):
+            with open(metrics_path) as f:
+                acc = json.load(f)["accuracy"]
         else:
+            acc = 1.0
 
-            print("WARNING: client_info.json missing, using equal weight")
-            sample_counts.append(1)
+        accuracies.append(acc)
 
-    return models, sample_counts
-
+    return models, accuracies
 
 
-def fedavg(models_list, sample_counts, resnet_type):
+def compute_feature_similarity(models, loader, device):
 
-    print("\nPerforming FedAvg Aggregation")
+    features = []
+
+    with torch.no_grad():
+
+        for model in models:
+
+            feats = []
+
+            for images, _ in loader:
+
+                images = images.to(device)
+
+                f = model.extract_features(images)
+
+                feats.append(f.mean(dim=0).cpu())
+
+            feats = torch.stack(feats).mean(dim=0)
+
+            features.append(feats)
+
+    n = len(features)
+
+    sim_matrix = np.zeros((n, n))
+
+    for i in range(n):
+        for j in range(n):
+
+            sim_matrix[i][j] = F.cosine_similarity(
+                features[i], features[j], dim=0
+            ).item()
+
+    return sim_matrix
+
+
+def compute_entropy(model, loader, device):
+
+    entropies = []
+
+    with torch.no_grad():
+
+        for images, _ in loader:
+
+            images = images.to(device)
+
+            probs = torch.softmax(model(images), dim=1)
+
+            entropy = -torch.sum(probs * torch.log(probs + 1e-8), dim=1)
+
+            entropies.extend(entropy.cpu().numpy())
+
+    return np.mean(entropies)
+
+
+def domain_aware_fusion(models_list, accuracies, loader, device, resnet_type):
+
+    print("\n🚀 ADVANCED DOMAIN-AWARE FUSION")
 
     global_model = build_model(resnet_type)
-
     global_dict = global_model.state_dict()
 
     client_dicts = [m.state_dict() for m in models_list]
+    n = len(models_list)
 
-    total_samples = sum(sample_counts)
+    sim_matrix = compute_feature_similarity(models_list, loader, device)
 
-    # compute normalized weights
-    weights = [c / total_samples for c in sample_counts]
+    diversity = 1 - sim_matrix.mean(axis=1)
+    diversity = diversity / (diversity.sum() + 1e-8)
 
-    print("Client sample counts:", sample_counts)
-    print("Aggregation weights:", weights)
+    accs = np.array(accuracies)
+    accs = accs / (accs.sum() + 1e-8)
 
-    for key in tqdm(global_dict.keys(), desc="Aggregating Parameters"):
+
+    entropy_scores = np.array([
+        compute_entropy(m, loader, device)
+        for m in models_list
+    ])
+
+    confidence = 1 / (entropy_scores + 1e-8)
+    confidence = confidence / (confidence.sum() + 1e-8)
+
+    combined = 0.5 * accs + 0.3 * diversity + 0.2 * confidence
+
+    weights = np.exp(combined) / np.sum(np.exp(combined))
+
+    print("🔥 Final Aggregation Weights:", weights)
+
+    for key in tqdm(global_dict.keys(), desc="Fusing Layers"):
 
         try:
 
-            global_dict[key] = sum(
-                weights[i] * client_dicts[i][key]
-                for i in range(len(models_list))
-            )
+            if "resnet" in key or "xception" in key:
+
+                global_dict[key] = sum(
+                    weights[i] * client_dicts[i][key]
+                    for i in range(n)
+                )
+
+            elif "fusion" in key:
+
+                div_w = np.exp(diversity) / np.sum(np.exp(diversity))
+
+                global_dict[key] = sum(
+                    div_w[i] * client_dicts[i][key]
+                    for i in range(n)
+                )
+
+            elif "classifier" in key:
+
+                temp = 1.5
+                conf_w = weights ** (1 / temp)
+                conf_w = conf_w / conf_w.sum()
+
+                global_dict[key] = sum(
+                    conf_w[i] * client_dicts[i][key]
+                    for i in range(n)
+                )
+
+            else:
+
+                global_dict[key] = sum(
+                    weights[i] * client_dicts[i][key]
+                    for i in range(n)
+                )
 
         except:
-
-            # fallback safety
             global_dict[key] = client_dicts[0][key]
 
     global_model.load_state_dict(global_dict)
 
-    return global_model
-
+    return global_model, weights, sim_matrix
 
 
 def evaluate(model, loader, device):
 
     model.eval()
 
-    preds = []
-    labels = []
-    probs = []
+    preds, labels, probs = [], [], []
 
     with torch.no_grad():
 
@@ -149,109 +218,40 @@ def evaluate(model, loader, device):
             outputs = model(images)
 
             prob = torch.softmax(outputs, dim=1)
-
             pred = torch.argmax(prob, dim=1)
 
             preds.extend(pred.cpu().numpy())
             labels.extend(y.numpy())
-            probs.extend(prob[:,1].cpu().numpy())
+            probs.extend(prob[:, 1].cpu().numpy())
 
     return np.array(labels), np.array(preds), np.array(probs)
 
 
-def plot_confusion_matrix(cm, save_dir):
-
-    plt.figure(figsize=(5,5))
-
-    plt.imshow(cm, cmap="Blues")
-
-    plt.title("Confusion Matrix")
-
-    plt.colorbar()
-
-    for i in range(cm.shape[0]):
-        for j in range(cm.shape[1]):
-            plt.text(j,i,cm[i,j],ha="center",va="center")
-
-    plt.xlabel("Predicted")
-    plt.ylabel("True")
-
-    plt.tight_layout()
-
-    plt.savefig(os.path.join(save_dir,"confusion_matrix.png"))
-
-    plt.close()
-
-
-def plot_roc(labels, probs, save_dir):
-
-    fpr, tpr, _ = roc_curve(labels, probs)
-
-    plt.figure()
-
-    plt.plot(fpr, tpr)
-
-    plt.xlabel("False Positive Rate")
-    plt.ylabel("True Positive Rate")
-
-    plt.title("ROC Curve")
-
-    plt.savefig(os.path.join(save_dir,"roc_curve.png"))
-
-    plt.close()
-
-
-def save_results(labels, preds, probs, cm, save_dir):
-
-    acc = accuracy_score(labels, preds)
-
-    precision = precision_score(labels, preds, zero_division=0)
-
-    recall = recall_score(labels, preds, zero_division=0)
-
-    f1 = f1_score(labels, preds, zero_division=0)
-
-    auc = roc_auc_score(labels, probs)
-
-    report = classification_report(labels, preds)
+def save_results(labels, preds, probs, cm, weights, sim, save_dir):
 
     metrics = {
-        "accuracy": acc,
-        "precision": precision,
-        "recall": recall,
-        "f1_score": f1,
-        "roc_auc": auc
+        "accuracy": accuracy_score(labels, preds),
+        "precision": precision_score(labels, preds, zero_division=0),
+        "recall": recall_score(labels, preds, zero_division=0),
+        "f1_score": f1_score(labels, preds, zero_division=0),
+        "roc_auc": roc_auc_score(labels, probs)
     }
 
     with open(os.path.join(save_dir,"global_metrics.json"),"w") as f:
         json.dump(metrics,f,indent=4)
 
     pd.DataFrame([metrics]).to_csv(
-        os.path.join(save_dir,"evaluation_metrics.csv"),
-        index=False
+        os.path.join(save_dir,"metrics.csv"), index=False
     )
 
-    with open(os.path.join(save_dir,"classification_report.txt"),"w") as f:
-        f.write(report)
+    np.save(os.path.join(save_dir,"confusion_matrix.npy"), cm)
+    np.save(os.path.join(save_dir,"similarity_matrix.npy"), sim)
 
-    np.save(os.path.join(save_dir,"confusion_matrix.npy"),cm)
-
-    plot_confusion_matrix(cm,save_dir)
-
-    plot_roc(labels,probs,save_dir)
-
-    pd.DataFrame({
-        "label":labels,
-        "prediction":preds,
-        "probability":probs
-    }).to_csv(
-        os.path.join(save_dir,"predictions.csv"),
-        index=False
-    )
+    with open(os.path.join(save_dir,"aggregation_weights.json"),"w") as f:
+        json.dump(weights.tolist(),f,indent=4)
 
     print("\nGLOBAL METRICS")
-
-    print(json.dumps(metrics,indent=4))
+    print(json.dumps(metrics, indent=4))
 
 
 def main():
@@ -262,23 +262,10 @@ def main():
 
     os.makedirs(args.save_dir, exist_ok=True)
 
-    models_list, sample_counts = load_client_models(
+    models_list, accs = load_client_models(
         args.client_dirs,
         device,
         args.resnet_type
-    )
-
-    global_model = fedavg(
-        models_list,
-        sample_counts,
-        args.resnet_type
-    )
-
-    global_model.to(device)
-
-    torch.save(
-        global_model.state_dict(),
-        os.path.join(args.save_dir,"global_model.pth")
     )
 
     global_loader = get_dataloader(
@@ -287,20 +274,26 @@ def main():
         batch_size=32
     )
 
+    global_model, weights, sim = domain_aware_fusion(
+        models_list,
+        accs,
+        global_loader,
+        device,
+        args.resnet_type
+    )
+
+    torch.save(
+        global_model.state_dict(),
+        os.path.join(args.save_dir,"global_model.pth")
+    )
+
     labels, preds, probs = evaluate(global_model, global_loader, device)
 
     cm = confusion_matrix(labels, preds)
 
-    save_results(
-        labels,
-        preds,
-        probs,
-        cm,
-        args.save_dir
-    )
+    save_results(labels, preds, probs, cm, weights, sim, args.save_dir)
 
-    print("\nFedAvg Aggregation Completed")
-
+    print("\n✅ Server Fusion Completed")
 
 
 if __name__ == "__main__":

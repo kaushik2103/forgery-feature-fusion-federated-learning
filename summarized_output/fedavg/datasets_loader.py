@@ -1,28 +1,23 @@
 import os
 import random
 from PIL import Image
-import numpy as np
 import torch
-from torch.utils.data import Dataset, DataLoader, WeightedRandomSampler
+from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms
-
-
 
 VALID_EXTENSIONS = (".jpg", ".jpeg", ".png", ".bmp", ".webp")
 
 
 def get_transforms(img_size=224, train=True):
 
+
     if train:
+
         return transforms.Compose([
+
             transforms.Resize((img_size, img_size)),
 
             transforms.RandomHorizontalFlip(),
-
-            transforms.ColorJitter(
-                brightness=0.1,
-                contrast=0.1
-            ),
 
             transforms.ToTensor(),
 
@@ -33,9 +28,13 @@ def get_transforms(img_size=224, train=True):
         ])
 
     else:
+
         return transforms.Compose([
+
             transforms.Resize((img_size, img_size)),
+
             transforms.ToTensor(),
+
             transforms.Normalize(
                 [0.485, 0.456, 0.406],
                 [0.229, 0.224, 0.225]
@@ -43,13 +42,13 @@ def get_transforms(img_size=224, train=True):
         ])
 
 
-
 class ForgeryDataset(Dataset):
 
     def __init__(self, root_dir, split="train", img_size=224):
 
         self.samples = []
-        self.labels = []
+        self.root_dir = root_dir
+        self.split = split
 
         self.transform = get_transforms(
             img_size,
@@ -61,7 +60,8 @@ class ForgeryDataset(Dataset):
         if os.path.exists(split_path):
             dataset_path = split_path
         else:
-            dataset_path = root_dir   # global test
+            # global dataset case
+            dataset_path = root_dir
 
         self._load_dataset(dataset_path)
 
@@ -80,22 +80,27 @@ class ForgeryDataset(Dataset):
             if not os.path.isdir(folder):
                 continue
 
-            label = 0 if class_name.lower() == "real" else 1
+            if class_name.lower() == "real":
+                label = 0
+            else:
+                label = 1
 
             for img in os.listdir(folder):
 
                 if not img.lower().endswith(VALID_EXTENSIONS):
                     continue
 
-                path = os.path.join(folder, img)
+                img_path = os.path.join(folder, img)
 
-                self.samples.append(path)
-                self.labels.append(label)
+                self.samples.append((img_path, label))
 
                 if label == 0:
                     real_count += 1
                 else:
                     fake_count += 1
+
+        # Shuffle samples
+        random.shuffle(self.samples)
 
         print("\nDataset Statistics")
         print("------------------")
@@ -104,20 +109,22 @@ class ForgeryDataset(Dataset):
         print("Total:", real_count + fake_count)
 
 
+
     def __len__(self):
         return len(self.samples)
 
 
     def __getitem__(self, idx):
 
-        path = self.samples[idx]
-        label = self.labels[idx]
+        img_path, label = self.samples[idx]
 
         try:
-            image = Image.open(path).convert("RGB")
+            image = Image.open(img_path).convert("RGB")
+
         except:
-            idx = random.randint(0, len(self.samples) - 1)
-            return self.__getitem__(idx)
+            # Handle corrupted images
+            new_idx = random.randint(0, len(self.samples) - 1)
+            return self.__getitem__(new_idx)
 
         image = self.transform(image)
 
@@ -138,38 +145,20 @@ def get_dataloader(
         img_size=img_size
     )
 
+    loader = DataLoader(
 
-    if split == "train":
+        dataset,
 
-        labels = dataset.labels
+        batch_size=batch_size,
 
-        class_counts = np.bincount(labels)
-        class_weights = 1.0 / class_counts
+        shuffle=(split == "train"),
 
-        sample_weights = [class_weights[label] for label in labels]
+        num_workers=num_workers,
 
-        sampler = WeightedRandomSampler(
-            sample_weights,
-            num_samples=len(sample_weights),
-            replacement=True
-        )
+        pin_memory=True,
 
-        loader = DataLoader(
-            dataset,
-            batch_size=batch_size,
-            sampler=sampler,
-            num_workers=num_workers,
-            pin_memory=True
-        )
+        drop_last=(split == "train")
 
-    else:
-
-        loader = DataLoader(
-            dataset,
-            batch_size=batch_size,
-            shuffle=False,
-            num_workers=num_workers,
-            pin_memory=True
-        )
+    )
 
     return loader

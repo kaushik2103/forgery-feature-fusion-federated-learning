@@ -1,0 +1,1190 @@
+Windows PowerShell
+Copyright (C) Microsoft Corporation. All rights reserved.
+
+Install the latest PowerShell for new features and improvements! https://aka.ms/PSWindows
+
+PS D:\Projects\forgery-feature-fusion-federated-learning> python federated_main.py --rounds 20 --local_epochs 5 --batch_size 12 --lr 0.0003 --client_paths ff_clients/client1 ff_clients/client2 --global_test_path ff_clients/global_test
+
+Using device: cuda
+C:\Users\kaush\AppData\Roaming\Python\Python312\site-packages\timm\models\_factory.py:138: UserWarning: Mapping deprecated model name xception to current legacy_xception.
+  model = create_fn(
+
+Dataset Statistics
+------------------
+Real : 2000
+Fake : 1998
+Total: 3998
+
+Loaded 3998 samples from ff_clients/global_test
+
+==============================
+Round 1/20
+==============================
+
+Training Client 1
+
+Dataset Statistics
+------------------
+Real : 2000
+Fake : 1998
+Total: 3998
+
+Loaded 3998 samples from ff_clients/client1\train
+
+Dataset Statistics
+------------------
+Real : 500
+Fake : 498
+Total: 998
+
+Loaded 998 samples from ff_clients/client1\test
+D:\Projects\forgery-feature-fusion-federated-learning\federated_main.py:75: FutureWarning: `torch.cuda.amp.GradScaler(args...)` is deprecated. Please use `torch.amp.GradScaler('cuda', args...)` instead.
+  scaler = GradScaler()
+Local Epoch 1:   0%|                                                                                                                                      | 0/334 [00:00<?, ?it/s]D:\Projects\forgery-feature-fusion-federated-learning\federated_main.py:93: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with autocast():
+Client Metrics: {'accuracy': 0.9098196392785571, 'precision': 0.9129554655870445, 'recall': 0.9056224899598394, 'f1_score': 0.9092741935483871, 'roc_auc': 0.9717550200803211, 'client': 1, 'round': 1}
+
+Training Client 2
+
+Dataset Statistics
+------------------
+Real : 2000
+Fake : 1998
+Total: 3998
+
+Loaded 3998 samples from ff_clients/client2\train
+
+Dataset Statistics
+------------------
+Real : 500
+Fake : 498
+Total: 998
+
+Loaded 998 samples from ff_clients/client2\test
+D:\Projects\forgery-feature-fusion-federated-learning\federated_main.py:75: FutureWarning: `torch.cuda.amp.GradScaler(args...)` is deprecated. Please use `torch.amp.GradScaler('cuda', args...)` instead.
+  scaler = GradScaler()
+Local Epoch 1:   0%|                                                                                                                                      | 0/334 [00:00<?, ?it/s]D:\Projects\forgery-feature-fusion-federated-learning\federated_main.py:93: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with autocast():
+Client Metrics: {'accuracy': 0.906813627254509, 'precision': 0.8799249530956847, 'recall': 0.9417670682730924, 'f1_score': 0.9097963142580019, 'roc_auc': 0.962726907630522, 'client': 2, 'round': 1}
+
+🚀 ADVANCED DOMAIN-AWARE FUSION
+C:\Users\kaush\AppData\Roaming\Python\Python312\site-packages\timm\models\_factory.py:138: UserWarning: Mapping deprecated model name xception to current legacy_xception.
+  model = create_fn(
+🔥 Final Aggregation Weights: [0.50068847 0.49931153]
+Fusing Layers: 100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 611/611 [00:00<00:00, 18664.30it/s]
+
+🔥 Global Metrics: {'accuracy': 0.7638819409704852, 'precision': 0.796400449943757, 'recall': 0.7087087087087087, 'f1_score': 0.75, 'roc_auc': 0.8534819819819819, 'round': 1}
+🔥 New best model saved
+
+==============================
+Round 2/20
+==============================
+
+Training Client 1
+
+Dataset Statistics
+------------------
+Real : 2000
+Fake : 1998
+Total: 3998
+
+Loaded 3998 samples from ff_clients/client1\train
+
+Dataset Statistics
+------------------
+Real : 500
+Fake : 498
+Total: 998
+
+Loaded 998 samples from ff_clients/client1\test
+D:\Projects\forgery-feature-fusion-federated-learning\federated_main.py:75: FutureWarning: `torch.cuda.amp.GradScaler(args...)` is deprecated. Please use `torch.amp.GradScaler('cuda', args...)` instead.
+  scaler = GradScaler()
+Local Epoch 1:   0%|                                                                                                                                      | 0/334 [00:00<?, ?it/s]D:\Projects\forgery-feature-fusion-federated-learning\federated_main.py:93: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with autocast():
+Client Metrics: {'accuracy': 0.9308617234468938, 'precision': 0.9148936170212766, 'recall': 0.9497991967871486, 'f1_score': 0.9320197044334976, 'roc_auc': 0.9795020080321285, 'client': 1, 'round': 2}
+
+Training Client 2
+
+Dataset Statistics
+------------------
+Real : 2000
+Fake : 1998
+Total: 3998
+
+Loaded 3998 samples from ff_clients/client2\train
+
+Dataset Statistics
+------------------
+Real : 500
+Fake : 498
+Total: 998
+
+Loaded 998 samples from ff_clients/client2\test
+D:\Projects\forgery-feature-fusion-federated-learning\federated_main.py:75: FutureWarning: `torch.cuda.amp.GradScaler(args...)` is deprecated. Please use `torch.amp.GradScaler('cuda', args...)` instead.
+  scaler = GradScaler()
+Local Epoch 1:   0%|                                                                                                                                      | 0/334 [00:00<?, ?it/s]D:\Projects\forgery-feature-fusion-federated-learning\federated_main.py:93: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with autocast():
+Client Metrics: {'accuracy': 0.8797595190380761, 'precision': 0.842391304347826, 'recall': 0.9337349397590361, 'f1_score': 0.8857142857142857, 'roc_auc': 0.96444578313253, 'client': 2, 'round': 2}
+
+🚀 ADVANCED DOMAIN-AWARE FUSION
+C:\Users\kaush\AppData\Roaming\Python\Python312\site-packages\timm\models\_factory.py:138: UserWarning: Mapping deprecated model name xception to current legacy_xception.
+  model = create_fn(
+🔥 Final Aggregation Weights: [0.50243217 0.49756783]
+Fusing Layers: 100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 611/611 [00:00<00:00, 20776.51it/s]
+
+🔥 Global Metrics: {'accuracy': 0.8316658329164582, 'precision': 0.836807320793086, 'recall': 0.8238238238238238, 'f1_score': 0.8302648171500631, 'roc_auc': 0.9154034034034035, 'round': 2}
+🔥 New best model saved
+
+==============================
+Round 3/20
+==============================
+
+Training Client 1
+
+Dataset Statistics
+------------------
+Real : 2000
+Fake : 1998
+Total: 3998
+
+Loaded 3998 samples from ff_clients/client1\train
+
+Dataset Statistics
+------------------
+Real : 500
+Fake : 498
+Total: 998
+
+Loaded 998 samples from ff_clients/client1\test
+D:\Projects\forgery-feature-fusion-federated-learning\federated_main.py:75: FutureWarning: `torch.cuda.amp.GradScaler(args...)` is deprecated. Please use `torch.amp.GradScaler('cuda', args...)` instead.
+  scaler = GradScaler()
+Local Epoch 1:   0%|                                                                                                                                      | 0/334 [00:00<?, ?it/s]D:\Projects\forgery-feature-fusion-federated-learning\federated_main.py:93: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with autocast():
+Client Metrics: {'accuracy': 0.9398797595190381, 'precision': 0.932806324110672, 'recall': 0.9477911646586346, 'f1_score': 0.9402390438247012, 'roc_auc': 0.9819397590361446, 'client': 1, 'round': 3}
+
+Training Client 2
+
+Dataset Statistics
+------------------
+Real : 2000
+Fake : 1998
+Total: 3998
+
+Loaded 3998 samples from ff_clients/client2\train
+
+Dataset Statistics
+------------------
+Real : 500
+Fake : 498
+Total: 998
+
+Loaded 998 samples from ff_clients/client2\test
+D:\Projects\forgery-feature-fusion-federated-learning\federated_main.py:75: FutureWarning: `torch.cuda.amp.GradScaler(args...)` is deprecated. Please use `torch.amp.GradScaler('cuda', args...)` instead.
+  scaler = GradScaler()
+Local Epoch 1:   0%|                                                                                                                                      | 0/334 [00:00<?, ?it/s]D:\Projects\forgery-feature-fusion-federated-learning\federated_main.py:93: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with autocast():
+Client Metrics: {'accuracy': 0.9148296593186372, 'precision': 0.9171717171717172, 'recall': 0.9116465863453815, 'f1_score': 0.9144008056394763, 'roc_auc': 0.9600963855421687, 'client': 2, 'round': 3}
+
+🚀 ADVANCED DOMAIN-AWARE FUSION
+C:\Users\kaush\AppData\Roaming\Python\Python312\site-packages\timm\models\_factory.py:138: UserWarning: Mapping deprecated model name xception to current legacy_xception.
+  model = create_fn(
+🔥 Final Aggregation Weights: [0.50138289 0.49861711]
+Fusing Layers: 100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 611/611 [00:00<00:00, 21701.04it/s]
+
+🔥 Global Metrics: {'accuracy': 0.8496748374187093, 'precision': 0.917513448894202, 'recall': 0.7682682682682682, 'f1_score': 0.836284391174067, 'roc_auc': 0.9272787787787788, 'round': 3}
+🔥 New best model saved
+
+==============================
+Round 4/20
+==============================
+
+Training Client 1
+
+Dataset Statistics
+------------------
+Real : 2000
+Fake : 1998
+Total: 3998
+
+Loaded 3998 samples from ff_clients/client1\train
+
+Dataset Statistics
+------------------
+Real : 500
+Fake : 498
+Total: 998
+
+Loaded 998 samples from ff_clients/client1\test
+D:\Projects\forgery-feature-fusion-federated-learning\federated_main.py:75: FutureWarning: `torch.cuda.amp.GradScaler(args...)` is deprecated. Please use `torch.amp.GradScaler('cuda', args...)` instead.
+  scaler = GradScaler()
+Local Epoch 1:   0%|                                                                                                                                      | 0/334 [00:00<?, ?it/s]D:\Projects\forgery-feature-fusion-federated-learning\federated_main.py:93: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with autocast():
+Client Metrics: {'accuracy': 0.9328657314629258, 'precision': 0.9425051334702259, 'recall': 0.9216867469879518, 'f1_score': 0.9319796954314721, 'roc_auc': 0.973281124497992, 'client': 1, 'round': 4}
+
+Training Client 2
+
+Dataset Statistics
+------------------
+Real : 2000
+Fake : 1998
+Total: 3998
+
+Loaded 3998 samples from ff_clients/client2\train
+
+Dataset Statistics
+------------------
+Real : 500
+Fake : 498
+Total: 998
+
+Loaded 998 samples from ff_clients/client2\test
+D:\Projects\forgery-feature-fusion-federated-learning\federated_main.py:75: FutureWarning: `torch.cuda.amp.GradScaler(args...)` is deprecated. Please use `torch.amp.GradScaler('cuda', args...)` instead.
+  scaler = GradScaler()
+Local Epoch 1:   0%|                                                                                                                                      | 0/334 [00:00<?, ?it/s]D:\Projects\forgery-feature-fusion-federated-learning\federated_main.py:93: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with autocast():
+Client Metrics: {'accuracy': 0.8897795591182365, 'precision': 0.8514492753623188, 'recall': 0.9437751004016064, 'f1_score': 0.8952380952380953, 'roc_auc': 0.9612690763052208, 'client': 2, 'round': 4}
+
+🚀 ADVANCED DOMAIN-AWARE FUSION
+C:\Users\kaush\AppData\Roaming\Python\Python312\site-packages\timm\models\_factory.py:138: UserWarning: Mapping deprecated model name xception to current legacy_xception.
+  model = create_fn(
+🔥 Final Aggregation Weights: [0.50453707 0.49546293]
+Fusing Layers: 100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 611/611 [00:00<00:00, 20276.61it/s]
+
+🔥 Global Metrics: {'accuracy': 0.8791895947973987, 'precision': 0.9137083560895686, 'recall': 0.8373373373373373, 'f1_score': 0.8738574040219378, 'roc_auc': 0.941372997997998, 'round': 4}
+🔥 New best model saved
+
+==============================
+Round 5/20
+==============================
+
+Training Client 1
+
+Dataset Statistics
+------------------
+Real : 2000
+Fake : 1998
+Total: 3998
+
+Loaded 3998 samples from ff_clients/client1\train
+
+Dataset Statistics
+------------------
+Real : 500
+Fake : 498
+Total: 998
+
+Loaded 998 samples from ff_clients/client1\test
+D:\Projects\forgery-feature-fusion-federated-learning\federated_main.py:75: FutureWarning: `torch.cuda.amp.GradScaler(args...)` is deprecated. Please use `torch.amp.GradScaler('cuda', args...)` instead.
+  scaler = GradScaler()
+Local Epoch 1:   0%|                                                                                                                                      | 0/334 [00:00<?, ?it/s]D:\Projects\forgery-feature-fusion-federated-learning\federated_main.py:93: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with autocast():
+Client Metrics: {'accuracy': 0.9498997995991983, 'precision': 0.9552845528455285, 'recall': 0.9437751004016064, 'f1_score': 0.9494949494949495, 'roc_auc': 0.9785381526104417, 'client': 1, 'round': 5}
+
+Training Client 2
+
+Dataset Statistics
+------------------
+Real : 2000
+Fake : 1998
+Total: 3998
+
+Loaded 3998 samples from ff_clients/client2\train
+
+Dataset Statistics
+------------------
+Real : 500
+Fake : 498
+Total: 998
+
+Loaded 998 samples from ff_clients/client2\test
+D:\Projects\forgery-feature-fusion-federated-learning\federated_main.py:75: FutureWarning: `torch.cuda.amp.GradScaler(args...)` is deprecated. Please use `torch.amp.GradScaler('cuda', args...)` instead.
+  scaler = GradScaler()
+Local Epoch 1:   0%|                                                                                                                                      | 0/334 [00:00<?, ?it/s]D:\Projects\forgery-feature-fusion-federated-learning\federated_main.py:93: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with autocast():
+Client Metrics: {'accuracy': 0.9038076152304609, 'precision': 0.8850574712643678, 'recall': 0.927710843373494, 'f1_score': 0.9058823529411765, 'roc_auc': 0.960694779116466, 'client': 2, 'round': 5}
+
+🚀 ADVANCED DOMAIN-AWARE FUSION
+C:\Users\kaush\AppData\Roaming\Python\Python312\site-packages\timm\models\_factory.py:138: UserWarning: Mapping deprecated model name xception to current legacy_xception.
+  model = create_fn(
+🔥 Final Aggregation Weights: [0.50302001 0.49697999]
+Fusing Layers: 100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 611/611 [00:00<00:00, 16361.41it/s]
+
+🔥 Global Metrics: {'accuracy': 0.8786893446723362, 'precision': 0.9034666666666666, 'recall': 0.8478478478478478, 'f1_score': 0.8747740769429383, 'roc_auc': 0.9387194694694694, 'round': 5}
+
+==============================
+Round 6/20
+==============================
+
+Training Client 1
+
+Dataset Statistics
+------------------
+Real : 2000
+Fake : 1998
+Total: 3998
+
+Loaded 3998 samples from ff_clients/client1\train
+
+Dataset Statistics
+------------------
+Real : 500
+Fake : 498
+Total: 998
+
+Loaded 998 samples from ff_clients/client1\test
+D:\Projects\forgery-feature-fusion-federated-learning\federated_main.py:75: FutureWarning: `torch.cuda.amp.GradScaler(args...)` is deprecated. Please use `torch.amp.GradScaler('cuda', args...)` instead.
+  scaler = GradScaler()
+Local Epoch 1:   0%|                                                                                                                                      | 0/334 [00:00<?, ?it/s]D:\Projects\forgery-feature-fusion-federated-learning\federated_main.py:93: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with autocast():
+Client Metrics: {'accuracy': 0.9418837675350702, 'precision': 0.9382470119521913, 'recall': 0.9457831325301205, 'f1_score': 0.942, 'roc_auc': 0.9814939759036144, 'client': 1, 'round': 6}
+
+Training Client 2
+
+Dataset Statistics
+------------------
+Real : 2000
+Fake : 1998
+Total: 3998
+
+Loaded 3998 samples from ff_clients/client2\train
+
+Dataset Statistics
+------------------
+Real : 500
+Fake : 498
+Total: 998
+
+Loaded 998 samples from ff_clients/client2\test
+D:\Projects\forgery-feature-fusion-federated-learning\federated_main.py:75: FutureWarning: `torch.cuda.amp.GradScaler(args...)` is deprecated. Please use `torch.amp.GradScaler('cuda', args...)` instead.
+  scaler = GradScaler()
+Local Epoch 1:   0%|                                                                                                                                      | 0/334 [00:00<?, ?it/s]D:\Projects\forgery-feature-fusion-federated-learning\federated_main.py:93: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with autocast():
+Client Metrics: {'accuracy': 0.9268537074148296, 'precision': 0.934560327198364, 'recall': 0.9176706827309237, 'f1_score': 0.9260385005065856, 'roc_auc': 0.97114859437751, 'client': 2, 'round': 6}
+
+🚀 ADVANCED DOMAIN-AWARE FUSION
+C:\Users\kaush\AppData\Roaming\Python\Python312\site-packages\timm\models\_factory.py:138: UserWarning: Mapping deprecated model name xception to current legacy_xception.
+  model = create_fn(
+🔥 Final Aggregation Weights: [0.50263932 0.49736068]
+Fusing Layers: 100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 611/611 [00:00<00:00, 17915.98it/s]
+
+🔥 Global Metrics: {'accuracy': 0.8899449724862432, 'precision': 0.9294377067254685, 'recall': 0.8438438438438438, 'f1_score': 0.8845750262329486, 'roc_auc': 0.9516281281281281, 'round': 6}
+🔥 New best model saved
+
+==============================
+Round 7/20
+==============================
+
+Training Client 1
+
+Dataset Statistics
+------------------
+Real : 2000
+Fake : 1998
+Total: 3998
+
+Loaded 3998 samples from ff_clients/client1\train
+
+Dataset Statistics
+------------------
+Real : 500
+Fake : 498
+Total: 998
+
+Loaded 998 samples from ff_clients/client1\test
+D:\Projects\forgery-feature-fusion-federated-learning\federated_main.py:75: FutureWarning: `torch.cuda.amp.GradScaler(args...)` is deprecated. Please use `torch.amp.GradScaler('cuda', args...)` instead.
+  scaler = GradScaler()
+Local Epoch 1:   0%|                                                                                                                                      | 0/334 [00:00<?, ?it/s]D:\Projects\forgery-feature-fusion-federated-learning\federated_main.py:93: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with autocast():
+Client Metrics: {'accuracy': 0.9529058116232465, 'precision': 0.9361702127659575, 'recall': 0.9718875502008032, 'f1_score': 0.9536945812807882, 'roc_auc': 0.9833052208835341, 'client': 1, 'round': 7}
+
+Training Client 2
+
+Dataset Statistics
+------------------
+Real : 2000
+Fake : 1998
+Total: 3998
+
+Loaded 3998 samples from ff_clients/client2\train
+
+Dataset Statistics
+------------------
+Real : 500
+Fake : 498
+Total: 998
+
+Loaded 998 samples from ff_clients/client2\test
+D:\Projects\forgery-feature-fusion-federated-learning\federated_main.py:75: FutureWarning: `torch.cuda.amp.GradScaler(args...)` is deprecated. Please use `torch.amp.GradScaler('cuda', args...)` instead.
+  scaler = GradScaler()
+Local Epoch 1:   0%|                                                                                                                                      | 0/334 [00:00<?, ?it/s]D:\Projects\forgery-feature-fusion-federated-learning\federated_main.py:93: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with autocast():
+Client Metrics: {'accuracy': 0.9128256513026052, 'precision': 0.8870056497175142, 'recall': 0.9457831325301205, 'f1_score': 0.9154518950437318, 'roc_auc': 0.9554457831325303, 'client': 2, 'round': 7}
+
+🚀 ADVANCED DOMAIN-AWARE FUSION
+C:\Users\kaush\AppData\Roaming\Python\Python312\site-packages\timm\models\_factory.py:138: UserWarning: Mapping deprecated model name xception to current legacy_xception.
+  model = create_fn(
+🔥 Final Aggregation Weights: [0.50411038 0.49588962]
+Fusing Layers: 100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 611/611 [00:00<00:00, 19399.41it/s]
+
+🔥 Global Metrics: {'accuracy': 0.9072036018009004, 'precision': 0.9077694235588972, 'recall': 0.9064064064064065, 'f1_score': 0.9070874029551715, 'roc_auc': 0.9587712712712712, 'round': 7}
+🔥 New best model saved
+
+==============================
+Round 8/20
+==============================
+
+Training Client 1
+
+Dataset Statistics
+------------------
+Real : 2000
+Fake : 1998
+Total: 3998
+
+Loaded 3998 samples from ff_clients/client1\train
+
+Dataset Statistics
+------------------
+Real : 500
+Fake : 498
+Total: 998
+
+Loaded 998 samples from ff_clients/client1\test
+D:\Projects\forgery-feature-fusion-federated-learning\federated_main.py:75: FutureWarning: `torch.cuda.amp.GradScaler(args...)` is deprecated. Please use `torch.amp.GradScaler('cuda', args...)` instead.
+  scaler = GradScaler()
+Local Epoch 1:   0%|                                                                                                                                      | 0/334 [00:00<?, ?it/s]D:\Projects\forgery-feature-fusion-federated-learning\federated_main.py:93: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with autocast():
+Client Metrics: {'accuracy': 0.9569138276553106, 'precision': 0.9595959595959596, 'recall': 0.9538152610441767, 'f1_score': 0.9566968781470292, 'roc_auc': 0.9780963855421687, 'client': 1, 'round': 8}
+
+Training Client 2
+
+Dataset Statistics
+------------------
+Real : 2000
+Fake : 1998
+Total: 3998
+
+Loaded 3998 samples from ff_clients/client2\train
+
+Dataset Statistics
+------------------
+Real : 500
+Fake : 498
+Total: 998
+
+Loaded 998 samples from ff_clients/client2\test
+D:\Projects\forgery-feature-fusion-federated-learning\federated_main.py:75: FutureWarning: `torch.cuda.amp.GradScaler(args...)` is deprecated. Please use `torch.amp.GradScaler('cuda', args...)` instead.
+  scaler = GradScaler()
+Local Epoch 1:   0%|                                                                                                                                      | 0/334 [00:00<?, ?it/s]D:\Projects\forgery-feature-fusion-federated-learning\federated_main.py:93: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with autocast():
+Client Metrics: {'accuracy': 0.8987975951903807, 'precision': 0.8525754884547069, 'recall': 0.963855421686747, 'f1_score': 0.9048067860508954, 'roc_auc': 0.953789156626506, 'client': 2, 'round': 8}
+
+🚀 ADVANCED DOMAIN-AWARE FUSION
+C:\Users\kaush\AppData\Roaming\Python\Python312\site-packages\timm\models\_factory.py:138: UserWarning: Mapping deprecated model name xception to current legacy_xception.
+  model = create_fn(
+🔥 Final Aggregation Weights: [0.50363686 0.49636314]
+Fusing Layers: 100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 611/611 [00:00<00:00, 17601.82it/s]
+
+🔥 Global Metrics: {'accuracy': 0.9027013506753376, 'precision': 0.9166235111341274, 'recall': 0.8858858858858859, 'f1_score': 0.9009926189870195, 'roc_auc': 0.956870870870871, 'round': 8}
+
+==============================
+Round 9/20
+==============================
+
+Training Client 1
+
+Dataset Statistics
+------------------
+Real : 2000
+Fake : 1998
+Total: 3998
+
+Loaded 3998 samples from ff_clients/client1\train
+
+Dataset Statistics
+------------------
+Real : 500
+Fake : 498
+Total: 998
+
+Loaded 998 samples from ff_clients/client1\test
+D:\Projects\forgery-feature-fusion-federated-learning\federated_main.py:75: FutureWarning: `torch.cuda.amp.GradScaler(args...)` is deprecated. Please use `torch.amp.GradScaler('cuda', args...)` instead.
+  scaler = GradScaler()
+Local Epoch 1:   0%|                                                                                                                                      | 0/334 [00:00<?, ?it/s]D:\Projects\forgery-feature-fusion-federated-learning\federated_main.py:93: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with autocast():
+Client Metrics: {'accuracy': 0.9498997995991983, 'precision': 0.9534412955465587, 'recall': 0.9457831325301205, 'f1_score': 0.9495967741935484, 'roc_auc': 0.9839277108433735, 'client': 1, 'round': 9}
+
+Training Client 2
+
+Dataset Statistics
+------------------
+Real : 2000
+Fake : 1998
+Total: 3998
+
+Loaded 3998 samples from ff_clients/client2\train
+
+Dataset Statistics
+------------------
+Real : 500
+Fake : 498
+Total: 998
+
+Loaded 998 samples from ff_clients/client2\test
+D:\Projects\forgery-feature-fusion-federated-learning\federated_main.py:75: FutureWarning: `torch.cuda.amp.GradScaler(args...)` is deprecated. Please use `torch.amp.GradScaler('cuda', args...)` instead.
+  scaler = GradScaler()
+Local Epoch 1:   0%|                                                                                                                                      | 0/334 [00:00<?, ?it/s]D:\Projects\forgery-feature-fusion-federated-learning\federated_main.py:93: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with autocast():
+Client Metrics: {'accuracy': 0.9178356713426854, 'precision': 0.9227642276422764, 'recall': 0.9116465863453815, 'f1_score': 0.9171717171717172, 'roc_auc': 0.9684618473895583, 'client': 2, 'round': 9}
+
+🚀 ADVANCED DOMAIN-AWARE FUSION
+C:\Users\kaush\AppData\Roaming\Python\Python312\site-packages\timm\models\_factory.py:138: UserWarning: Mapping deprecated model name xception to current legacy_xception.
+  model = create_fn(
+🔥 Final Aggregation Weights: [0.50321434 0.49678566]
+Fusing Layers: 100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 611/611 [00:00<00:00, 15726.65it/s]
+
+🔥 Global Metrics: {'accuracy': 0.8816908454227114, 'precision': 0.9384703852788959, 'recall': 0.8168168168168168, 'f1_score': 0.8734278833288734, 'roc_auc': 0.9512148398398398, 'round': 9}
+
+==============================
+Round 10/20
+==============================
+
+Training Client 1
+
+Dataset Statistics
+------------------
+Real : 2000
+Fake : 1998
+Total: 3998
+
+Loaded 3998 samples from ff_clients/client1\train
+
+Dataset Statistics
+------------------
+Real : 500
+Fake : 498
+Total: 998
+
+Loaded 998 samples from ff_clients/client1\test
+D:\Projects\forgery-feature-fusion-federated-learning\federated_main.py:75: FutureWarning: `torch.cuda.amp.GradScaler(args...)` is deprecated. Please use `torch.amp.GradScaler('cuda', args...)` instead.
+  scaler = GradScaler()
+Local Epoch 1:   0%|                                                                                                                                      | 0/334 [00:00<?, ?it/s]D:\Projects\forgery-feature-fusion-federated-learning\federated_main.py:93: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with autocast():
+Client Metrics: {'accuracy': 0.9408817635270541, 'precision': 0.9761388286334056, 'recall': 0.9036144578313253, 'f1_score': 0.9384775808133472, 'roc_auc': 0.9841365461847389, 'client': 1, 'round': 10}
+
+Training Client 2
+
+Dataset Statistics
+------------------
+Real : 2000
+Fake : 1998
+Total: 3998
+
+Loaded 3998 samples from ff_clients/client2\train
+
+Dataset Statistics
+------------------
+Real : 500
+Fake : 498
+Total: 998
+
+Loaded 998 samples from ff_clients/client2\test
+D:\Projects\forgery-feature-fusion-federated-learning\federated_main.py:75: FutureWarning: `torch.cuda.amp.GradScaler(args...)` is deprecated. Please use `torch.amp.GradScaler('cuda', args...)` instead.
+  scaler = GradScaler()
+Local Epoch 1:   0%|                                                                                                                                      | 0/334 [00:00<?, ?it/s]D:\Projects\forgery-feature-fusion-federated-learning\federated_main.py:93: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with autocast():
+Client Metrics: {'accuracy': 0.9178356713426854, 'precision': 0.9444444444444444, 'recall': 0.8875502008032129, 'f1_score': 0.9151138716356108, 'roc_auc': 0.9622208835341366, 'client': 2, 'round': 10}
+
+🚀 ADVANCED DOMAIN-AWARE FUSION
+C:\Users\kaush\AppData\Roaming\Python\Python312\site-packages\timm\models\_factory.py:138: UserWarning: Mapping deprecated model name xception to current legacy_xception.
+  model = create_fn(
+🔥 Final Aggregation Weights: [0.50239928 0.49760072]
+Fusing Layers: 100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 611/611 [00:00<00:00, 18356.41it/s]
+
+🔥 Global Metrics: {'accuracy': 0.8786893446723362, 'precision': 0.9725171767645222, 'recall': 0.7792792792792793, 'f1_score': 0.8652403445401501, 'roc_auc': 0.9573313313313313, 'round': 10}
+
+==============================
+Round 11/20
+==============================
+
+Training Client 1
+
+Dataset Statistics
+------------------
+Real : 2000
+Fake : 1998
+Total: 3998
+
+Loaded 3998 samples from ff_clients/client1\train
+
+Dataset Statistics
+------------------
+Real : 500
+Fake : 498
+Total: 998
+
+Loaded 998 samples from ff_clients/client1\test
+D:\Projects\forgery-feature-fusion-federated-learning\federated_main.py:75: FutureWarning: `torch.cuda.amp.GradScaler(args...)` is deprecated. Please use `torch.amp.GradScaler('cuda', args...)` instead.
+  scaler = GradScaler()
+Local Epoch 1:   0%|                                                                                                                                      | 0/334 [00:00<?, ?it/s]D:\Projects\forgery-feature-fusion-federated-learning\federated_main.py:93: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with autocast():
+Client Metrics: {'accuracy': 0.9478957915831663, 'precision': 0.9223484848484849, 'recall': 0.9779116465863453, 'f1_score': 0.949317738791423, 'roc_auc': 0.9864538152610441, 'client': 1, 'round': 11}
+
+Training Client 2
+
+Dataset Statistics
+------------------
+Real : 2000
+Fake : 1998
+Total: 3998
+
+Loaded 3998 samples from ff_clients/client2\train
+
+Dataset Statistics
+------------------
+Real : 500
+Fake : 498
+Total: 998
+
+Loaded 998 samples from ff_clients/client2\test
+D:\Projects\forgery-feature-fusion-federated-learning\federated_main.py:75: FutureWarning: `torch.cuda.amp.GradScaler(args...)` is deprecated. Please use `torch.amp.GradScaler('cuda', args...)` instead.
+  scaler = GradScaler()
+Local Epoch 1:   0%|                                                                                                                                      | 0/334 [00:00<?, ?it/s]D:\Projects\forgery-feature-fusion-federated-learning\federated_main.py:93: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with autocast():
+Client Metrics: {'accuracy': 0.8867735470941884, 'precision': 0.8336221837088388, 'recall': 0.9658634538152611, 'f1_score': 0.8948837209302326, 'roc_auc': 0.966285140562249, 'client': 2, 'round': 11}
+
+🚀 ADVANCED DOMAIN-AWARE FUSION
+C:\Users\kaush\AppData\Roaming\Python\Python312\site-packages\timm\models\_factory.py:138: UserWarning: Mapping deprecated model name xception to current legacy_xception.
+  model = create_fn(
+🔥 Final Aggregation Weights: [0.50385542 0.49614458]
+Fusing Layers: 100%|██████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 611/611 [00:00<00:00, 6777.85it/s]
+
+🔥 Global Metrics: {'accuracy': 0.9052026013006503, 'precision': 0.9161953727506427, 'recall': 0.8918918918918919, 'f1_score': 0.9038802941922394, 'roc_auc': 0.9671251251251252, 'round': 11}
+
+==============================
+Round 12/20
+==============================
+
+Training Client 1
+
+Dataset Statistics
+------------------
+Real : 2000
+Fake : 1998
+Total: 3998
+
+Loaded 3998 samples from ff_clients/client1\train
+
+Dataset Statistics
+------------------
+Real : 500
+Fake : 498
+Total: 998
+
+Loaded 998 samples from ff_clients/client1\test
+D:\Projects\forgery-feature-fusion-federated-learning\federated_main.py:75: FutureWarning: `torch.cuda.amp.GradScaler(args...)` is deprecated. Please use `torch.amp.GradScaler('cuda', args...)` instead.
+  scaler = GradScaler()
+Local Epoch 1:   0%|                                                                                                                                      | 0/334 [00:00<?, ?it/s]D:\Projects\forgery-feature-fusion-federated-learning\federated_main.py:93: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with autocast():
+Client Metrics: {'accuracy': 0.9448897795591182, 'precision': 0.9235181644359465, 'recall': 0.9698795180722891, 'f1_score': 0.9461312438785504, 'roc_auc': 0.9862208835341366, 'client': 1, 'round': 12}
+
+Training Client 2
+
+Dataset Statistics
+------------------
+Real : 2000
+Fake : 1998
+Total: 3998
+
+Loaded 3998 samples from ff_clients/client2\train
+
+Dataset Statistics
+------------------
+Real : 500
+Fake : 498
+Total: 998
+
+Loaded 998 samples from ff_clients/client2\test
+D:\Projects\forgery-feature-fusion-federated-learning\federated_main.py:75: FutureWarning: `torch.cuda.amp.GradScaler(args...)` is deprecated. Please use `torch.amp.GradScaler('cuda', args...)` instead.
+  scaler = GradScaler()
+Local Epoch 1:   0%|                                                                                                                                      | 0/334 [00:00<?, ?it/s]D:\Projects\forgery-feature-fusion-federated-learning\federated_main.py:93: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with autocast():
+Client Metrics: {'accuracy': 0.9108216432865731, 'precision': 0.908183632734531, 'recall': 0.9136546184738956, 'f1_score': 0.9109109109109109, 'roc_auc': 0.9632008032128515, 'client': 2, 'round': 12}
+
+🚀 ADVANCED DOMAIN-AWARE FUSION
+C:\Users\kaush\AppData\Roaming\Python\Python312\site-packages\timm\models\_factory.py:138: UserWarning: Mapping deprecated model name xception to current legacy_xception.
+  model = create_fn(
+🔥 Final Aggregation Weights: [0.5033055 0.4966945]
+Fusing Layers: 100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 611/611 [00:00<00:00, 20144.63it/s]
+
+🔥 Global Metrics: {'accuracy': 0.9092046023011505, 'precision': 0.9318541996830428, 'recall': 0.8828828828828829, 'f1_score': 0.9067077872012336, 'roc_auc': 0.965429054054054, 'round': 12}
+🔥 New best model saved
+
+==============================
+Round 13/20
+==============================
+
+Training Client 1
+
+Dataset Statistics
+------------------
+Real : 2000
+Fake : 1998
+Total: 3998
+
+Loaded 3998 samples from ff_clients/client1\train
+
+Dataset Statistics
+------------------
+Real : 500
+Fake : 498
+Total: 998
+
+Loaded 998 samples from ff_clients/client1\test
+D:\Projects\forgery-feature-fusion-federated-learning\federated_main.py:75: FutureWarning: `torch.cuda.amp.GradScaler(args...)` is deprecated. Please use `torch.amp.GradScaler('cuda', args...)` instead.
+  scaler = GradScaler()
+Local Epoch 1:   0%|                                                                                                                                      | 0/334 [00:00<?, ?it/s]D:\Projects\forgery-feature-fusion-federated-learning\federated_main.py:93: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with autocast():
+Client Metrics: {'accuracy': 0.9418837675350702, 'precision': 0.9166666666666666, 'recall': 0.9718875502008032, 'f1_score': 0.9434697855750487, 'roc_auc': 0.9836746987951808, 'client': 1, 'round': 13}
+
+Training Client 2
+
+Dataset Statistics
+------------------
+Real : 2000
+Fake : 1998
+Total: 3998
+
+Loaded 3998 samples from ff_clients/client2\train
+
+Dataset Statistics
+------------------
+Real : 500
+Fake : 498
+Total: 998
+
+Loaded 998 samples from ff_clients/client2\test
+D:\Projects\forgery-feature-fusion-federated-learning\federated_main.py:75: FutureWarning: `torch.cuda.amp.GradScaler(args...)` is deprecated. Please use `torch.amp.GradScaler('cuda', args...)` instead.
+  scaler = GradScaler()
+Local Epoch 1:   0%|                                                                                                                                      | 0/334 [00:00<?, ?it/s]D:\Projects\forgery-feature-fusion-federated-learning\federated_main.py:93: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with autocast():
+Client Metrics: {'accuracy': 0.9128256513026052, 'precision': 0.8716094032549728, 'recall': 0.9678714859437751, 'f1_score': 0.917221693625119, 'roc_auc': 0.9658273092369478, 'client': 2, 'round': 13}
+
+🚀 ADVANCED DOMAIN-AWARE FUSION
+C:\Users\kaush\AppData\Roaming\Python\Python312\site-packages\timm\models\_factory.py:138: UserWarning: Mapping deprecated model name xception to current legacy_xception.
+  model = create_fn(
+🔥 Final Aggregation Weights: [0.5010221 0.4989779]
+Fusing Layers: 100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 611/611 [00:00<00:00, 18305.93it/s]
+
+🔥 Global Metrics: {'accuracy': 0.8986993496748374, 'precision': 0.883855421686747, 'recall': 0.9179179179179179, 'f1_score': 0.9005646943285048, 'roc_auc': 0.9573806306306306, 'round': 13}
+
+==============================
+Round 14/20
+==============================
+
+Training Client 1
+
+Dataset Statistics
+------------------
+Real : 2000
+Fake : 1998
+Total: 3998
+
+Loaded 3998 samples from ff_clients/client1\train
+
+Dataset Statistics
+------------------
+Real : 500
+Fake : 498
+Total: 998
+
+Loaded 998 samples from ff_clients/client1\test
+D:\Projects\forgery-feature-fusion-federated-learning\federated_main.py:75: FutureWarning: `torch.cuda.amp.GradScaler(args...)` is deprecated. Please use `torch.amp.GradScaler('cuda', args...)` instead.
+  scaler = GradScaler()
+Local Epoch 1:   0%|                                                                                                                                      | 0/334 [00:00<?, ?it/s]D:\Projects\forgery-feature-fusion-federated-learning\federated_main.py:93: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with autocast():
+Client Metrics: {'accuracy': 0.9559118236472945, 'precision': 0.954, 'recall': 0.9578313253012049, 'f1_score': 0.9559118236472945, 'roc_auc': 0.9889598393574297, 'client': 1, 'round': 14}
+
+Training Client 2
+
+Dataset Statistics
+------------------
+Real : 2000
+Fake : 1998
+Total: 3998
+
+Loaded 3998 samples from ff_clients/client2\train
+
+Dataset Statistics
+------------------
+Real : 500
+Fake : 498
+Total: 998
+
+Loaded 998 samples from ff_clients/client2\test
+D:\Projects\forgery-feature-fusion-federated-learning\federated_main.py:75: FutureWarning: `torch.cuda.amp.GradScaler(args...)` is deprecated. Please use `torch.amp.GradScaler('cuda', args...)` instead.
+  scaler = GradScaler()
+Local Epoch 1:   0%|                                                                                                                                      | 0/334 [00:00<?, ?it/s]D:\Projects\forgery-feature-fusion-federated-learning\federated_main.py:93: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with autocast():
+Client Metrics: {'accuracy': 0.8887775551102205, 'precision': 0.8319039451114922, 'recall': 0.9738955823293173, 'f1_score': 0.8973172987974098, 'roc_auc': 0.9467028112449799, 'client': 2, 'round': 14}
+
+🚀 ADVANCED DOMAIN-AWARE FUSION
+C:\Users\kaush\AppData\Roaming\Python\Python312\site-packages\timm\models\_factory.py:138: UserWarning: Mapping deprecated model name xception to current legacy_xception.
+  model = create_fn(
+🔥 Final Aggregation Weights: [0.5052803 0.4947197]
+Fusing Layers: 100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 611/611 [00:00<00:00, 19809.23it/s]
+
+🔥 Global Metrics: {'accuracy': 0.8931965982991495, 'precision': 0.8871365204534253, 'recall': 0.9009009009009009, 'f1_score': 0.893965731313633, 'roc_auc': 0.9526552802802805, 'round': 14}
+
+==============================
+Round 15/20
+==============================
+
+Training Client 1
+
+Dataset Statistics
+------------------
+Real : 2000
+Fake : 1998
+Total: 3998
+
+Loaded 3998 samples from ff_clients/client1\train
+
+Dataset Statistics
+------------------
+Real : 500
+Fake : 498
+Total: 998
+
+Loaded 998 samples from ff_clients/client1\test
+D:\Projects\forgery-feature-fusion-federated-learning\federated_main.py:75: FutureWarning: `torch.cuda.amp.GradScaler(args...)` is deprecated. Please use `torch.amp.GradScaler('cuda', args...)` instead.
+  scaler = GradScaler()
+Local Epoch 1:   0%|                                                                                                                                      | 0/334 [00:00<?, ?it/s]D:\Projects\forgery-feature-fusion-federated-learning\federated_main.py:93: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with autocast():
+Client Metrics: {'accuracy': 0.9498997995991983, 'precision': 0.9392156862745098, 'recall': 0.9618473895582329, 'f1_score': 0.9503968253968254, 'roc_auc': 0.9844096385542167, 'client': 1, 'round': 15}
+
+Training Client 2
+
+Dataset Statistics
+------------------
+Real : 2000
+Fake : 1998
+Total: 3998
+
+Loaded 3998 samples from ff_clients/client2\train
+
+Dataset Statistics
+------------------
+Real : 500
+Fake : 498
+Total: 998
+
+Loaded 998 samples from ff_clients/client2\test
+D:\Projects\forgery-feature-fusion-federated-learning\federated_main.py:75: FutureWarning: `torch.cuda.amp.GradScaler(args...)` is deprecated. Please use `torch.amp.GradScaler('cuda', args...)` instead.
+  scaler = GradScaler()
+Local Epoch 1:   0%|                                                                                                                                      | 0/334 [00:00<?, ?it/s]D:\Projects\forgery-feature-fusion-federated-learning\federated_main.py:93: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with autocast():
+Client Metrics: {'accuracy': 0.908817635270541, 'precision': 0.8706739526411658, 'recall': 0.9598393574297188, 'f1_score': 0.9130850047755492, 'roc_auc': 0.9681726907630522, 'client': 2, 'round': 15}
+
+🚀 ADVANCED DOMAIN-AWARE FUSION
+C:\Users\kaush\AppData\Roaming\Python\Python312\site-packages\timm\models\_factory.py:138: UserWarning: Mapping deprecated model name xception to current legacy_xception.
+  model = create_fn(
+🔥 Final Aggregation Weights: [0.5030903 0.4969097]
+Fusing Layers: 100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 611/611 [00:00<00:00, 16275.78it/s]
+
+🔥 Global Metrics: {'accuracy': 0.9032016008004002, 'precision': 0.9184415584415584, 'recall': 0.8848848848848849, 'f1_score': 0.9013510068824879, 'roc_auc': 0.9628403403403403, 'round': 15}
+
+==============================
+Round 16/20
+==============================
+
+Training Client 1
+
+Dataset Statistics
+------------------
+Real : 2000
+Fake : 1998
+Total: 3998
+
+Loaded 3998 samples from ff_clients/client1\train
+
+Dataset Statistics
+------------------
+Real : 500
+Fake : 498
+Total: 998
+
+Loaded 998 samples from ff_clients/client1\test
+D:\Projects\forgery-feature-fusion-federated-learning\federated_main.py:75: FutureWarning: `torch.cuda.amp.GradScaler(args...)` is deprecated. Please use `torch.amp.GradScaler('cuda', args...)` instead.
+  scaler = GradScaler()
+Local Epoch 1:   0%|                                                                                                                                      | 0/334 [00:00<?, ?it/s]D:\Projects\forgery-feature-fusion-federated-learning\federated_main.py:93: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with autocast():
+Client Metrics: {'accuracy': 0.9549098196392786, 'precision': 0.9347408829174664, 'recall': 0.9779116465863453, 'f1_score': 0.9558390578999019, 'roc_auc': 0.9886224899598394, 'client': 1, 'round': 16}
+
+Training Client 2
+
+Dataset Statistics
+------------------
+Real : 2000
+Fake : 1998
+Total: 3998
+
+Loaded 3998 samples from ff_clients/client2\train
+
+Dataset Statistics
+------------------
+Real : 500
+Fake : 498
+Total: 998
+
+Loaded 998 samples from ff_clients/client2\test
+D:\Projects\forgery-feature-fusion-federated-learning\federated_main.py:75: FutureWarning: `torch.cuda.amp.GradScaler(args...)` is deprecated. Please use `torch.amp.GradScaler('cuda', args...)` instead.
+  scaler = GradScaler()
+Local Epoch 1:   0%|                                                                                                                                      | 0/334 [00:00<?, ?it/s]D:\Projects\forgery-feature-fusion-federated-learning\federated_main.py:93: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with autocast():
+Client Metrics: {'accuracy': 0.9298597194388778, 'precision': 0.9196078431372549, 'recall': 0.9417670682730924, 'f1_score': 0.9305555555555556, 'roc_auc': 0.9709558232931726, 'client': 2, 'round': 16}
+
+🚀 ADVANCED DOMAIN-AWARE FUSION
+C:\Users\kaush\AppData\Roaming\Python\Python312\site-packages\timm\models\_factory.py:138: UserWarning: Mapping deprecated model name xception to current legacy_xception.
+  model = create_fn(
+🔥 Final Aggregation Weights: [0.50231756 0.49768244]
+Fusing Layers: 100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 611/611 [00:00<00:00, 16757.47it/s]
+
+🔥 Global Metrics: {'accuracy': 0.9134567283641821, 'precision': 0.9270941054808687, 'recall': 0.8973973973973974, 'f1_score': 0.9120040691759919, 'roc_auc': 0.9720688188188188, 'round': 16}
+🔥 New best model saved
+
+==============================
+Round 17/20
+==============================
+
+Training Client 1
+
+Dataset Statistics
+------------------
+Real : 2000
+Fake : 1998
+Total: 3998
+
+Loaded 3998 samples from ff_clients/client1\train
+
+Dataset Statistics
+------------------
+Real : 500
+Fake : 498
+Total: 998
+
+Loaded 998 samples from ff_clients/client1\test
+D:\Projects\forgery-feature-fusion-federated-learning\federated_main.py:75: FutureWarning: `torch.cuda.amp.GradScaler(args...)` is deprecated. Please use `torch.amp.GradScaler('cuda', args...)` instead.
+  scaler = GradScaler()
+Local Epoch 1:   0%|                                                                                                                                      | 0/334 [00:00<?, ?it/s]D:\Projects\forgery-feature-fusion-federated-learning\federated_main.py:93: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with autocast():
+Client Metrics: {'accuracy': 0.9579158316633266, 'precision': 0.954183266932271, 'recall': 0.9618473895582329, 'f1_score': 0.958, 'roc_auc': 0.9847349397590361, 'client': 1, 'round': 17}
+
+Training Client 2
+
+Dataset Statistics
+------------------
+Real : 2000
+Fake : 1998
+Total: 3998
+
+Loaded 3998 samples from ff_clients/client2\train
+
+Dataset Statistics
+------------------
+Real : 500
+Fake : 498
+Total: 998
+
+Loaded 998 samples from ff_clients/client2\test
+D:\Projects\forgery-feature-fusion-federated-learning\federated_main.py:75: FutureWarning: `torch.cuda.amp.GradScaler(args...)` is deprecated. Please use `torch.amp.GradScaler('cuda', args...)` instead.
+  scaler = GradScaler()
+Local Epoch 1:   0%|                                                                                                                                      | 0/334 [00:00<?, ?it/s]D:\Projects\forgery-feature-fusion-federated-learning\federated_main.py:93: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with autocast():
+Client Metrics: {'accuracy': 0.9308617234468938, 'precision': 0.9298597194388778, 'recall': 0.9317269076305221, 'f1_score': 0.9307923771313942, 'roc_auc': 0.9653654618473896, 'client': 2, 'round': 17}
+
+🚀 ADVANCED DOMAIN-AWARE FUSION
+C:\Users\kaush\AppData\Roaming\Python\Python312\site-packages\timm\models\_factory.py:138: UserWarning: Mapping deprecated model name xception to current legacy_xception.
+  model = create_fn(
+🔥 Final Aggregation Weights: [0.50167324 0.49832676]
+Fusing Layers: 100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 611/611 [00:00<00:00, 16595.67it/s]
+
+🔥 Global Metrics: {'accuracy': 0.8984492246123061, 'precision': 0.9682352941176471, 'recall': 0.8238238238238238, 'f1_score': 0.8902109248242294, 'roc_auc': 0.9736068568568568, 'round': 17}
+
+==============================
+Round 18/20
+==============================
+
+Training Client 1
+
+Dataset Statistics
+------------------
+Real : 2000
+Fake : 1998
+Total: 3998
+
+Loaded 3998 samples from ff_clients/client1\train
+
+Dataset Statistics
+------------------
+Real : 500
+Fake : 498
+Total: 998
+
+Loaded 998 samples from ff_clients/client1\test
+D:\Projects\forgery-feature-fusion-federated-learning\federated_main.py:75: FutureWarning: `torch.cuda.amp.GradScaler(args...)` is deprecated. Please use `torch.amp.GradScaler('cuda', args...)` instead.
+  scaler = GradScaler()
+Local Epoch 1:   0%|                                                                                                                                      | 0/334 [00:00<?, ?it/s]D:\Projects\forgery-feature-fusion-federated-learning\federated_main.py:93: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with autocast():
+Client Metrics: {'accuracy': 0.9599198396793587, 'precision': 0.9692622950819673, 'recall': 0.9497991967871486, 'f1_score': 0.9594320486815415, 'roc_auc': 0.9876626506024097, 'client': 1, 'round': 18}
+
+Training Client 2
+
+Dataset Statistics
+------------------
+Real : 2000
+Fake : 1998
+Total: 3998
+
+Loaded 3998 samples from ff_clients/client2\train
+
+Dataset Statistics
+------------------
+Real : 500
+Fake : 498
+Total: 998
+
+Loaded 998 samples from ff_clients/client2\test
+D:\Projects\forgery-feature-fusion-federated-learning\federated_main.py:75: FutureWarning: `torch.cuda.amp.GradScaler(args...)` is deprecated. Please use `torch.amp.GradScaler('cuda', args...)` instead.
+  scaler = GradScaler()
+Local Epoch 1:   0%|                                                                                                                                      | 0/334 [00:00<?, ?it/s]D:\Projects\forgery-feature-fusion-federated-learning\federated_main.py:93: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with autocast():
+Client Metrics: {'accuracy': 0.908817635270541, 'precision': 0.8614564831261101, 'recall': 0.9738955823293173, 'f1_score': 0.9142318567389256, 'roc_auc': 0.975789156626506, 'client': 2, 'round': 18}
+
+🚀 ADVANCED DOMAIN-AWARE FUSION
+C:\Users\kaush\AppData\Roaming\Python\Python312\site-packages\timm\models\_factory.py:138: UserWarning: Mapping deprecated model name xception to current legacy_xception.
+  model = create_fn(
+🔥 Final Aggregation Weights: [0.50281838 0.49718162]
+Fusing Layers: 100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 611/611 [00:00<00:00, 16768.98it/s]
+
+🔥 Global Metrics: {'accuracy': 0.9217108554277138, 'precision': 0.9227295534370296, 'recall': 0.9204204204204204, 'f1_score': 0.9215735404660486, 'roc_auc': 0.9735501751751753, 'round': 18}
+🔥 New best model saved
+
+==============================
+Round 19/20
+==============================
+
+Training Client 1
+
+Dataset Statistics
+------------------
+Real : 2000
+Fake : 1998
+Total: 3998
+
+Loaded 3998 samples from ff_clients/client1\train
+
+Dataset Statistics
+------------------
+Real : 500
+Fake : 498
+Total: 998
+
+Loaded 998 samples from ff_clients/client1\test
+D:\Projects\forgery-feature-fusion-federated-learning\federated_main.py:75: FutureWarning: `torch.cuda.amp.GradScaler(args...)` is deprecated. Please use `torch.amp.GradScaler('cuda', args...)` instead.
+  scaler = GradScaler()
+Local Epoch 1:   0%|                                                                                                                                      | 0/334 [00:00<?, ?it/s]D:\Projects\forgery-feature-fusion-federated-learning\federated_main.py:93: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with autocast():
+Client Metrics: {'accuracy': 0.9448897795591182, 'precision': 0.9351669941060904, 'recall': 0.9558232931726908, 'f1_score': 0.945382323733863, 'roc_auc': 0.986718875502008, 'client': 1, 'round': 19}
+
+Training Client 2
+
+Dataset Statistics
+------------------
+Real : 2000
+Fake : 1998
+Total: 3998
+
+Loaded 3998 samples from ff_clients/client2\train
+
+Dataset Statistics
+------------------
+Real : 500
+Fake : 498
+Total: 998
+
+Loaded 998 samples from ff_clients/client2\test
+D:\Projects\forgery-feature-fusion-federated-learning\federated_main.py:75: FutureWarning: `torch.cuda.amp.GradScaler(args...)` is deprecated. Please use `torch.amp.GradScaler('cuda', args...)` instead.
+  scaler = GradScaler()
+Local Epoch 1:   0%|                                                                                                                                      | 0/334 [00:00<?, ?it/s]D:\Projects\forgery-feature-fusion-federated-learning\federated_main.py:93: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with autocast():
+Client Metrics: {'accuracy': 0.9268537074148296, 'precision': 0.9017013232514177, 'recall': 0.9578313253012049, 'f1_score': 0.928919182083739, 'roc_auc': 0.9549317269076306, 'client': 2, 'round': 19}
+
+🚀 ADVANCED DOMAIN-AWARE FUSION
+C:\Users\kaush\AppData\Roaming\Python\Python312\site-packages\timm\models\_factory.py:138: UserWarning: Mapping deprecated model name xception to current legacy_xception.
+  model = create_fn(
+🔥 Final Aggregation Weights: [0.50045595 0.49954405]
+Fusing Layers: 100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 611/611 [00:00<00:00, 17511.02it/s]
+
+🔥 Global Metrics: {'accuracy': 0.9112056028014007, 'precision': 0.919346605410924, 'recall': 0.9014014014014013, 'f1_score': 0.9102855698761688, 'roc_auc': 0.9595007507507507, 'round': 19}
+
+==============================
+Round 20/20
+==============================
+
+Training Client 1
+
+Dataset Statistics
+------------------
+Real : 2000
+Fake : 1998
+Total: 3998
+
+Loaded 3998 samples from ff_clients/client1\train
+
+Dataset Statistics
+------------------
+Real : 500
+Fake : 498
+Total: 998
+
+Loaded 998 samples from ff_clients/client1\test
+D:\Projects\forgery-feature-fusion-federated-learning\federated_main.py:75: FutureWarning: `torch.cuda.amp.GradScaler(args...)` is deprecated. Please use `torch.amp.GradScaler('cuda', args...)` instead.
+  scaler = GradScaler()
+Local Epoch 1:   0%|                                                                                                                                      | 0/334 [00:00<?, ?it/s]D:\Projects\forgery-feature-fusion-federated-learning\federated_main.py:93: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with autocast():
+Client Metrics: {'accuracy': 0.938877755511022, 'precision': 0.9193857965451055, 'recall': 0.9618473895582329, 'f1_score': 0.9401373895976447, 'roc_auc': 0.9707028112449799, 'client': 1, 'round': 20}
+
+Training Client 2
+
+Dataset Statistics
+------------------
+Real : 2000
+Fake : 1998
+Total: 3998
+
+Loaded 3998 samples from ff_clients/client2\train
+
+Dataset Statistics
+------------------
+Real : 500
+Fake : 498
+Total: 998
+
+Loaded 998 samples from ff_clients/client2\test
+D:\Projects\forgery-feature-fusion-federated-learning\federated_main.py:75: FutureWarning: `torch.cuda.amp.GradScaler(args...)` is deprecated. Please use `torch.amp.GradScaler('cuda', args...)` instead.
+  scaler = GradScaler()
+Local Epoch 1:   0%|                                                                                                                                      | 0/334 [00:00<?, ?it/s]D:\Projects\forgery-feature-fusion-federated-learning\federated_main.py:93: FutureWarning: `torch.cuda.amp.autocast(args...)` is deprecated. Please use `torch.amp.autocast('cuda', args...)` instead.
+  with autocast():
+Client Metrics: {'accuracy': 0.9098196392785571, 'precision': 0.8709090909090909, 'recall': 0.9618473895582329, 'f1_score': 0.9141221374045801, 'roc_auc': 0.9781124497991968, 'client': 2, 'round': 20}
+
+🚀 ADVANCED DOMAIN-AWARE FUSION
+C:\Users\kaush\AppData\Roaming\Python\Python312\site-packages\timm\models\_factory.py:138: UserWarning: Mapping deprecated model name xception to current legacy_xception.
+  model = create_fn(
+🔥 Final Aggregation Weights: [0.50214949 0.49785051]
+Fusing Layers: 100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 611/611 [00:00<00:00, 19246.86it/s]
+
+🔥 Global Metrics: {'accuracy': 0.9092046023011505, 'precision': 0.8978102189781022, 'recall': 0.9234234234234234, 'f1_score': 0.9104367135455218, 'roc_auc': 0.9613527277277277, 'round': 20}
+
+✅ Federated Training Completed
+Best Global Accuracy: 0.9217108554277138

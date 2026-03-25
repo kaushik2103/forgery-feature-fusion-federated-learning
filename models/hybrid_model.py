@@ -2,71 +2,64 @@ import torch
 import torch.nn as nn
 from torchvision import models
 import timm
+import torch.nn.functional as F
 
 
 class HybridResNetXception(nn.Module):
-    """
-    Hybrid Model for Unified Forgery Detection
-
-    Branch 1 : ResNet  (texture / spoof artifacts)
-    Branch 2 : Xception (deepfake semantic artifacts)
-
-    Fusion : Feature Concatenation + Fully Connected
-
-    Output :
-        0 → Real
-        1 → Fake
-    """
 
     def __init__(
         self,
         resnet_type="resnet50",
         pretrained=True,
         fusion_dim=512,
-        dropout=0.2,
+        dropout=0.3,
         num_classes=2
     ):
         super(HybridResNetXception, self).__init__()
 
-        # --------------------------------------------------
-        # ResNet Backbone
-        # --------------------------------------------------
+
         if resnet_type == "resnet18":
-            backbone = models.resnet18(pretrained=pretrained)
+            backbone = models.resnet18(weights="DEFAULT" if pretrained else None)
             resnet_out = 512
 
         elif resnet_type == "resnet34":
-            backbone = models.resnet34(pretrained=pretrained)
+            backbone = models.resnet34(weights="DEFAULT" if pretrained else None)
             resnet_out = 512
 
         elif resnet_type == "resnet50":
-            backbone = models.resnet50(pretrained=pretrained)
+            backbone = models.resnet50(weights="DEFAULT" if pretrained else None)
             resnet_out = 2048
 
         else:
             raise ValueError("Unsupported ResNet type")
 
-        # Remove classification layer
         self.resnet = nn.Sequential(*list(backbone.children())[:-1])
-        self.resnet_out = int(resnet_out)
+        self.resnet_out = resnet_out
 
-        # --------------------------------------------------
-        # Xception Backbone (from timm)
-        # --------------------------------------------------
+
         self.xception = timm.create_model(
             "xception",
             pretrained=pretrained,
-            num_classes=0,        # remove classifier
+            num_classes=0,
             global_pool="avg"
         )
 
-        # Ensure integer type
-        self.xception_out = int(self.xception.num_features)
+        self.xception_out = self.xception.num_features
 
-        # --------------------------------------------------
-        # Feature Fusion Layer
-        # --------------------------------------------------
+
+        self.norm_resnet = nn.LayerNorm(self.resnet_out)
+        self.norm_xception = nn.LayerNorm(self.xception_out)
+
+
         fusion_input = self.resnet_out + self.xception_out
+
+        self.attention = nn.Sequential(
+            nn.Linear(fusion_input, fusion_input),
+            nn.ReLU(),
+            nn.Linear(fusion_input, fusion_input),
+            nn.Sigmoid()
+        )
+
 
         self.fusion = nn.Sequential(
             nn.Linear(fusion_input, fusion_dim),
@@ -75,25 +68,28 @@ class HybridResNetXception(nn.Module):
             nn.Dropout(dropout)
         )
 
-        # --------------------------------------------------
-        # Final Classifier
-        # --------------------------------------------------
-        self.classifier = nn.Linear(fusion_dim, num_classes)
 
-    # ------------------------------------------------------
-    # Forward Pass
-    # ------------------------------------------------------
+        self.classifier = nn.Sequential(
+            nn.Linear(fusion_dim, fusion_dim // 2),
+            nn.ReLU(),
+            nn.Dropout(dropout),
+            nn.Linear(fusion_dim // 2, num_classes)
+        )
+
+
     def forward(self, x):
 
-        # ResNet branch
-        r_feat = self.resnet(x)            # (B, C, 1, 1)
-        r_feat = torch.flatten(r_feat, 1)  # (B, C)
+        r_feat = self.resnet(x)
+        r_feat = torch.flatten(r_feat, 1)
+        r_feat = self.norm_resnet(r_feat)
 
-        # Xception branch
-        x_feat = self.xception(x)          # (B, C)
+        x_feat = self.xception(x)
+        x_feat = self.norm_xception(x_feat)
 
-        # Feature fusion
         fused = torch.cat((r_feat, x_feat), dim=1)
+
+        attn = self.attention(fused)
+        fused = fused * attn
 
         fused = self.fusion(fused)
 
@@ -101,33 +97,30 @@ class HybridResNetXception(nn.Module):
 
         return out
 
-    # ------------------------------------------------------
-    # Feature Extraction (used in analysis / FL similarity)
-    # ------------------------------------------------------
     def extract_features(self, x):
 
         r_feat = self.resnet(x)
         r_feat = torch.flatten(r_feat, 1)
+        r_feat = self.norm_resnet(r_feat)
 
         x_feat = self.xception(x)
+        x_feat = self.norm_xception(x_feat)
 
         fused = torch.cat((r_feat, x_feat), dim=1)
 
+        attn = self.attention(fused)
+        fused = fused * attn
+
         fused = self.fusion(fused)
+
+        fused = F.normalize(fused, dim=1)
 
         return fused
 
 
-# ----------------------------------------------------------
-# Freeze Utilities (useful for transfer learning)
-# ----------------------------------------------------------
-
-def freeze_resnet(model):
+def freeze_backbone(model):
     for param in model.resnet.parameters():
         param.requires_grad = False
-
-
-def freeze_xception(model):
     for param in model.xception.parameters():
         param.requires_grad = False
 
@@ -137,22 +130,13 @@ def unfreeze_all(model):
         param.requires_grad = True
 
 
-# ----------------------------------------------------------
-# Build Model (used by other scripts)
-# ----------------------------------------------------------
-
 def build_model(resnet_type="resnet50"):
 
-    model = HybridResNetXception(
-        resnet_type=resnet_type
-    )
+    model = HybridResNetXception(resnet_type=resnet_type)
 
     return model
 
 
-# ----------------------------------------------------------
-# Test Model
-# ----------------------------------------------------------
 
 if __name__ == "__main__":
 
@@ -165,4 +149,4 @@ if __name__ == "__main__":
     output = model(dummy)
 
     print("Input shape :", dummy.shape)
-    print("Output shape:", output.shape)  # Expected: [4, 2]
+    print("Output shape:", output.shape)

@@ -9,7 +9,6 @@ import matplotlib.pyplot as plt
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from torch.cuda.amp import autocast, GradScaler
 
 from sklearn.metrics import (
     accuracy_score,
@@ -23,10 +22,11 @@ from sklearn.metrics import (
 )
 
 from datasets_loader import get_dataloader
-from models.hybrid_model import build_model, freeze_backbone, unfreeze_all
+from models.hybrid_model import build_model
 
 
 def parse_args():
+
     parser = argparse.ArgumentParser()
 
     parser.add_argument("--client_path", type=str, required=True)
@@ -34,18 +34,22 @@ def parse_args():
 
     parser.add_argument("--epochs", type=int, default=10)
     parser.add_argument("--batch_size", type=int, default=12)
+
     parser.add_argument("--lr", type=float, default=3e-4)
 
     parser.add_argument("--resnet_type", type=str, default="resnet50")
+
     parser.add_argument("--global_model", type=str, default=None)
 
     parser.add_argument("--save_dir", type=str, default="client_outputs")
 
     return parser.parse_args()
 
-def train_one_epoch(model, loader, criterion, optimizer, scaler, device):
+
+def train_one_epoch(model, loader, criterion, optimizer, device):
 
     model.train()
+
     running_loss = 0
 
     for images, labels in tqdm(loader, desc="Training", leave=False):
@@ -55,16 +59,15 @@ def train_one_epoch(model, loader, criterion, optimizer, scaler, device):
 
         optimizer.zero_grad()
 
-        with autocast():
-            outputs = model(images)
-            loss = criterion(outputs, labels)
+        outputs = model(images)
 
-        scaler.scale(loss).backward()
+        loss = criterion(outputs, labels)
+
+        loss.backward()
 
         torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
 
-        scaler.step(optimizer)
-        scaler.update()
+        optimizer.step()
 
         running_loss += loss.item()
 
@@ -75,37 +78,40 @@ def evaluate(model, loader, device):
 
     model.eval()
 
-    preds, labels, probs = [], [], []
+    all_preds = []
+    all_labels = []
+    all_probs = []
 
     with torch.no_grad():
 
-        for images, y in tqdm(loader, desc="Testing", leave=False):
+        for images, labels in tqdm(loader, desc="Testing", leave=False):
 
             images = images.to(device)
 
             outputs = model(images)
 
-            prob = torch.softmax(outputs, dim=1)
-            pred = torch.argmax(prob, dim=1)
+            probs = torch.softmax(outputs, dim=1)
 
-            preds.extend(pred.cpu().numpy())
-            labels.extend(y.numpy())
-            probs.extend(prob[:,1].cpu().numpy())
+            preds = torch.argmax(probs, dim=1)
 
-    return np.array(labels), np.array(preds), np.array(probs)
+            all_preds.extend(preds.cpu().numpy())
+            all_labels.extend(labels.numpy())
+            all_probs.extend(probs[:,1].cpu().numpy())
+
+    return np.array(all_labels), np.array(all_preds), np.array(all_probs)
 
 
 def compute_metrics(labels, preds, probs):
 
     acc = accuracy_score(labels, preds)
+
     precision = precision_score(labels, preds, zero_division=0)
+
     recall = recall_score(labels, preds, zero_division=0)
+
     f1 = f1_score(labels, preds, zero_division=0)
 
-    try:
-        auc = roc_auc_score(labels, probs)
-    except:
-        auc = 0.0
+    auc = roc_auc_score(labels, probs)
 
     cm = confusion_matrix(labels, preds)
 
@@ -118,32 +124,45 @@ def compute_metrics(labels, preds, probs):
     }, cm
 
 
+
 def plot_training_curve(history, save_path):
 
     df = pd.DataFrame(history)
 
     plt.figure(figsize=(8,5))
+
     plt.plot(df["epoch"], df["accuracy"], label="Accuracy")
     plt.plot(df["epoch"], df["train_loss"], label="Loss")
 
-    plt.legend()
     plt.xlabel("Epoch")
     plt.ylabel("Value")
 
+    plt.legend()
+
+    plt.title("Training Curve")
+
     plt.savefig(os.path.join(save_path,"training_curve.png"))
+
     plt.close()
 
 
 def plot_confusion_matrix(cm, save_path):
 
     plt.figure(figsize=(5,5))
+
     plt.imshow(cm, cmap="Blues")
 
     for i in range(cm.shape[0]):
         for j in range(cm.shape[1]):
             plt.text(j,i,cm[i,j],ha="center",va="center")
 
+    plt.title("Confusion Matrix")
+
+    plt.xlabel("Predicted")
+    plt.ylabel("True")
+
     plt.savefig(os.path.join(save_path,"confusion_matrix.png"))
+
     plt.close()
 
 
@@ -152,9 +171,16 @@ def plot_roc(labels, probs, save_path):
     fpr, tpr, _ = roc_curve(labels, probs)
 
     plt.figure()
-    plt.plot(fpr, tpr)
+
+    plt.plot(fpr,tpr)
+
+    plt.xlabel("FPR")
+    plt.ylabel("TPR")
+
+    plt.title("ROC Curve")
 
     plt.savefig(os.path.join(save_path,"roc_curve.png"))
+
     plt.close()
 
 
@@ -171,16 +197,22 @@ def save_results(metrics, cm, labels, preds, probs, save_path):
     np.save(os.path.join(save_path,"confusion_matrix.npy"),cm)
 
     plot_confusion_matrix(cm,save_path)
+
     plot_roc(labels,probs,save_path)
 
     pd.DataFrame({
         "label":labels,
         "prediction":preds,
         "probability":probs
-    }).to_csv(os.path.join(save_path,"predictions.csv"),index=False)
+    }).to_csv(
+        os.path.join(save_path,"predictions.csv"),
+        index=False
+    )
 
     print("\nFinal Metrics")
+
     print(json.dumps(metrics,indent=4))
+
 
 
 def main():
@@ -190,9 +222,11 @@ def main():
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
     save_path = os.path.join(args.save_dir,args.client_name)
+
     os.makedirs(save_path,exist_ok=True)
 
     print("\nDevice:",device)
+
 
     train_loader = get_dataloader(
         args.client_path,
@@ -206,47 +240,50 @@ def main():
         batch_size=args.batch_size
     )
 
+    dataset_size = len(train_loader.dataset)
+
+    print("Client Dataset Size:", dataset_size)
+
     model = build_model(args.resnet_type).to(device)
 
     if args.global_model and os.path.exists(args.global_model):
+
         print("\nLoading Global Model")
-        model.load_state_dict(torch.load(args.global_model,map_location=device))
+
+        model.load_state_dict(
+            torch.load(args.global_model,map_location=device)
+        )
 
     class_weights = torch.tensor([1.0,1.5]).to(device)
 
-    criterion = nn.CrossEntropyLoss(
-        weight=class_weights,
-        label_smoothing=0.1
+    criterion = nn.CrossEntropyLoss(weight=class_weights)
+
+    optimizer = optim.Adam(
+        model.parameters(),
+        lr=args.lr
     )
 
-    optimizer = optim.AdamW(model.parameters(), lr=args.lr)
-
-    scheduler = optim.lr_scheduler.CosineAnnealingLR(
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(
         optimizer,
-        T_max=args.epochs
+        patience=2,
+        factor=0.5
     )
-
-    scaler = GradScaler()
 
     best_acc = 0
+
     history = []
+
     patience = 3
+
     early_stop_counter = 0
 
-
     for epoch in range(1,args.epochs+1):
-
-        if epoch <= 2:
-            freeze_backbone(model)
-        else:
-            unfreeze_all(model)
 
         train_loss = train_one_epoch(
             model,
             train_loader,
             criterion,
             optimizer,
-            scaler,
             device
         )
 
@@ -254,16 +291,14 @@ def main():
 
         metrics,cm = compute_metrics(labels,preds,probs)
 
-        scheduler.step()
+        scheduler.step(metrics["accuracy"])
 
         metrics["epoch"] = epoch
         metrics["train_loss"] = train_loss
 
         history.append(metrics)
 
-        print(f"Epoch {epoch} | Acc: {metrics['accuracy']:.4f}")
-
-        torch.save(model.state_dict(), os.path.join(save_path,f"epoch_{epoch}.pth"))
+        print("Epoch",epoch,"Accuracy",metrics["accuracy"])
 
         if metrics["accuracy"] > best_acc:
 
@@ -277,10 +312,13 @@ def main():
             early_stop_counter = 0
 
         else:
+
             early_stop_counter += 1
 
             if early_stop_counter >= patience:
+
                 print("Early stopping")
+
                 break
 
     torch.save(
@@ -288,6 +326,12 @@ def main():
         os.path.join(save_path,"last_model.pth")
     )
 
+    with open(os.path.join(save_path,"client_info.json"),"w") as f:
+
+        json.dump({
+            "client_name":args.client_name,
+            "dataset_size":dataset_size
+        },f,indent=4)
 
     with open(os.path.join(save_path,"training_history.json"),"w") as f:
         json.dump(history,f,indent=4)

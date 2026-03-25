@@ -10,7 +10,6 @@ from tqdm import tqdm
 
 import torch.nn as nn
 import torch.optim as optim
-from torch.cuda.amp import autocast, GradScaler
 
 from sklearn.metrics import (
     accuracy_score,
@@ -22,11 +21,12 @@ from sklearn.metrics import (
 )
 
 from datasets_loader import get_dataloader
-from models.hybrid_model import build_model, freeze_backbone, unfreeze_all
-from server_aggregation import domain_aware_fusion   # 🔥 NEW
+from models.hybrid_model import build_model
+
 
 
 def parse_args():
+
     parser = argparse.ArgumentParser()
 
     parser.add_argument("--rounds", type=int, default=10)
@@ -37,6 +37,7 @@ def parse_args():
     parser.add_argument("--resnet_type", type=str, default="resnet50")
 
     parser.add_argument("--client_paths", nargs="+", required=True)
+
     parser.add_argument("--global_test_path", type=str, required=True)
 
     parser.add_argument("--save_dir", type=str, default="federated_results")
@@ -44,61 +45,90 @@ def parse_args():
     return parser.parse_args()
 
 
+
 def local_train(model, train_loader, epochs, device, lr):
-
-    class_weights = torch.tensor([1.0, 1.5]).to(device)
-
-    criterion = nn.CrossEntropyLoss(
-        weight=class_weights,
-        label_smoothing=0.1
-    )
-
-    optimizer = optim.AdamW(model.parameters(), lr=lr)
-
-    scheduler = optim.lr_scheduler.CosineAnnealingLR(
-        optimizer,
-        T_max=epochs
-    )
-
-    scaler = GradScaler()
 
     model.train()
 
+    class_weights = torch.tensor([1.0, 1.5]).to(device)
+
+    criterion = nn.CrossEntropyLoss(weight=class_weights)
+
+    optimizer = optim.Adam(model.parameters(), lr=lr)
+
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(
+        optimizer,
+        patience=2,
+        factor=0.5
+    )
+
     for epoch in range(epochs):
 
-        if epoch < 2:
-            freeze_backbone(model)
-        else:
-            unfreeze_all(model)
+        epoch_loss = 0
 
-        for images, labels in tqdm(train_loader, desc=f"Local Epoch {epoch+1}", leave=False):
+        progress = tqdm(train_loader, desc=f"Local Epoch {epoch+1}", leave=False)
+
+        for images, labels in progress:
 
             images = images.to(device)
             labels = labels.to(device)
 
             optimizer.zero_grad()
 
-            with autocast():
-                outputs = model(images)
-                loss = criterion(outputs, labels)
+            outputs = model(images)
 
-            scaler.scale(loss).backward()
+            loss = criterion(outputs, labels)
+
+            loss.backward()
 
             torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
 
-            scaler.step(optimizer)
-            scaler.update()
+            optimizer.step()
 
-        scheduler.step()
+            epoch_loss += loss.item()
+
+            progress.set_postfix(loss=loss.item())
+
+        epoch_loss /= len(train_loader)
+
+        scheduler.step(epoch_loss)
 
     return model
+
+
+
+def fedavg(client_models, client_sizes):
+
+    global_model = copy.deepcopy(client_models[0])
+
+    global_dict = global_model.state_dict()
+
+    total_samples = sum(client_sizes)
+
+    weights = [size / total_samples for size in client_sizes]
+
+    client_dicts = [m.state_dict() for m in client_models]
+
+    for key in global_dict.keys():
+
+        global_dict[key] = sum(
+            weights[i] * client_dicts[i][key]
+            for i in range(len(client_models))
+        )
+
+    global_model.load_state_dict(global_dict)
+
+    return global_model
+
 
 
 def evaluate(model, loader, device):
 
     model.eval()
 
-    preds, labels, probs = [], [], []
+    preds = []
+    labels = []
+    probs = []
 
     with torch.no_grad():
 
@@ -109,6 +139,7 @@ def evaluate(model, loader, device):
             outputs = model(images)
 
             prob = torch.softmax(outputs, dim=1)
+
             pred = torch.argmax(prob, dim=1)
 
             preds.extend(pred.cpu().numpy())
@@ -127,7 +158,7 @@ def evaluate(model, loader, device):
     try:
         auc = roc_auc_score(labels, probs)
     except:
-        auc = 0.0
+        auc = 0
 
     cm = confusion_matrix(labels, preds)
 
@@ -142,21 +173,27 @@ def evaluate(model, loader, device):
     return metrics, labels, preds, probs, cm
 
 
+
 def plot_curves(round_metrics, save_dir):
 
     df = pd.DataFrame(round_metrics)
 
     plt.figure()
     plt.plot(df["round"], df["accuracy"])
+    plt.xlabel("Round")
+    plt.ylabel("Accuracy")
     plt.title("Global Accuracy")
     plt.savefig(os.path.join(save_dir,"accuracy_curve.png"))
     plt.close()
 
     plt.figure()
     plt.plot(df["round"], df["f1_score"])
+    plt.xlabel("Round")
+    plt.ylabel("F1 Score")
     plt.title("Global F1 Score")
     plt.savefig(os.path.join(save_dir,"f1_curve.png"))
     plt.close()
+
 
 
 def main():
@@ -171,8 +208,7 @@ def main():
 
     print("\nUsing device:", device)
 
-    # Save config
-    with open(os.path.join(args.save_dir,"config.json"),"w") as f:
+    with open(os.path.join(args.save_dir,"federated_config.json"),"w") as f:
         json.dump(vars(args),f,indent=4)
 
     global_model = build_model(args.resnet_type).to(device)
@@ -188,7 +224,6 @@ def main():
         batch_size=args.batch_size
     )
 
-
     for round_num in range(args.rounds):
 
         print("\n==============================")
@@ -196,9 +231,12 @@ def main():
         print("==============================")
 
         client_models = []
+        client_sizes = []
         client_round_metrics = []
-        client_accs = []
 
+        # ----------------------------------------------------
+        # Train Clients
+        # ----------------------------------------------------
 
         for client_id, client_path in enumerate(args.client_paths):
 
@@ -216,6 +254,8 @@ def main():
                 batch_size=args.batch_size
             )
 
+            dataset_size = len(train_loader.dataset)
+
             local_model = copy.deepcopy(global_model)
 
             local_model = local_train(
@@ -230,23 +270,20 @@ def main():
 
             metrics["client"] = client_id+1
             metrics["round"] = round_num+1
+            metrics["dataset_size"] = dataset_size
 
             client_round_metrics.append(metrics)
-            client_accs.append(metrics["accuracy"])
 
             print("Client Metrics:", metrics)
 
             client_models.append(local_model)
 
+            client_sizes.append(dataset_size)
+
         client_history.extend(client_round_metrics)
 
-        global_model, weights, sim = domain_aware_fusion(
-            client_models,
-            client_accs,
-            global_loader,
-            device,
-            args.resnet_type
-        )
+
+        global_model = fedavg(client_models, client_sizes)
 
         global_model.to(device)
 
@@ -254,6 +291,7 @@ def main():
             global_model.state_dict(),
             os.path.join(args.save_dir,f"global_model_round_{round_num+1}.pth")
         )
+
 
         metrics, labels, preds, probs, cm = evaluate(
             global_model,
@@ -265,7 +303,7 @@ def main():
 
         round_metrics.append(metrics)
 
-        print("\n🔥 Global Metrics:", metrics)
+        print("\nGlobal Metrics:", metrics)
 
         pd.DataFrame({
             "label":labels,
@@ -277,7 +315,7 @@ def main():
         )
 
         np.save(
-            os.path.join(args.save_dir,f"cm_round_{round_num+1}.npy"),
+            os.path.join(args.save_dir,f"confusion_matrix_round_{round_num+1}.npy"),
             cm
         )
 
@@ -290,7 +328,7 @@ def main():
                 os.path.join(args.save_dir,"best_global_model.pth")
             )
 
-            print("🔥 New best model saved")
+            print("New best global model saved")
 
         torch.cuda.empty_cache()
 
@@ -314,6 +352,7 @@ def main():
 
     print("\nFederated Training Completed")
     print("Best Global Accuracy:",best_acc)
+
 
 
 if __name__ == "__main__":
