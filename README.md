@@ -39,6 +39,9 @@ This command I have used for training and testing:
 `python federated_main.py --rounds 20  --local_epochs 5 --batch_size 12 --lr 0.001 --client_paths ff_clients\client1 ff_clients\client2 --global_test_path ff_clients\global_test`
 
 New command to be use: `python federated_main.py --rounds 20 --local_epochs 5 --batch_size 12 --lr 0.0003 --client_paths ff_clients/client1 ff_clients/client2 --global_test_path ff_clients/global_test`
+
+## Before moving towards the project overview and results, I would like you say that: the results are calculated for both 10 and 20 rounds for each aggregation methods, However due to size of the models & results I didn't added the results for 20 rounds.
+
 ## Project Overview
 
 This project implements a **Federated Learning (FL) framework for Deepfake Detection** using a **hybrid CNN–Xception architecture** trained on the **FaceForensics++ dataset**.
